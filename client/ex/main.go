@@ -1,9 +1,8 @@
-package client
+package main
 
 import (
 	"github.com/cat3306/gnetrpc/protocol"
 	"net"
-	"testing"
 )
 
 type CallReq struct {
@@ -11,10 +10,10 @@ type CallReq struct {
 	B int `json:"b"`
 }
 
-func TestClient(t *testing.T) {
+func main() {
 	conn, err := net.Dial("tcp", ":7898")
 	if err != nil {
-		t.Fatalf(err.Error())
+		panic(err)
 	}
 	req := CallReq{
 		A: 10,

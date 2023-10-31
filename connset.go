@@ -1,4 +1,4 @@
-package server
+package gnetrpc
 
 import (
 	"github.com/panjf2000/gnet/v2"

@@ -1,6 +1,7 @@
-package component
+package protocol
 
 import (
+	"context"
 	"github.com/panjf2000/gnet/v2"
 	"github.com/valyala/bytebufferpool"
 )
@@ -13,4 +14,5 @@ type Context struct {
 	Metadata      map[string]string
 	SerializeType uint16
 	Seq           uint64
+	Ctx           context.Context
 }

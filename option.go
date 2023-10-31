@@ -1,4 +1,4 @@
-package server
+package gnetrpc
 
 import (
 	"github.com/panjf2000/gnet/v2"
@@ -113,5 +113,47 @@ func WithLogger(logger logging.Logger) OptionFn {
 func WithMulticastInterfaceIndex(idx int) OptionFn {
 	return func(s *Server) {
 		s.option.gnetOptions.MulticastInterfaceIndex = idx
+	}
+}
+
+func WithAntExpiryDuration(expiryDuration time.Duration) OptionFn {
+	return func(s *Server) {
+		s.option.antOption.ExpiryDuration = expiryDuration
+	}
+}
+
+func WithPreAlloc(preAlloc bool) OptionFn {
+	return func(s *Server) {
+		s.option.antOption.PreAlloc = preAlloc
+	}
+}
+
+func WithMaxBlockingTasks(maxBlockingTasks int) OptionFn {
+	return func(s *Server) {
+		s.option.antOption.MaxBlockingTasks = maxBlockingTasks
+	}
+}
+
+func WithNonblocking(nonblocking bool) OptionFn {
+	return func(s *Server) {
+		s.option.antOption.Nonblocking = nonblocking
+	}
+}
+
+func WithPanicHandler(panicHandler func(interface{})) OptionFn {
+	return func(s *Server) {
+		s.option.antOption.PanicHandler = panicHandler
+	}
+}
+
+//func WithAntLogger(logger Logger) Option {
+//	return func(opts *Options) {
+//		opts.Logger = logger
+//	}
+//}
+
+func WithDisablePurge(disable bool) OptionFn {
+	return func(s *Server) {
+		s.option.antOption.DisablePurge = disable
 	}
 }

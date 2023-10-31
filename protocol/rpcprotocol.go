@@ -3,7 +3,6 @@ package protocol
 import (
 	"encoding/binary"
 	"errors"
-	"github.com/cat3306/gnetrpc/component"
 	"github.com/cat3306/gnetrpc/rpclog"
 	"github.com/cat3306/gnetrpc/util"
 	"github.com/panjf2000/gnet/v2"
@@ -38,7 +37,7 @@ var (
 	ErrDiscardedPacket  = errors.New("discarded not equal msg len")
 )
 
-func Decode(c gnet.Conn) (*component.Context, error) {
+func Decode(c gnet.Conn) (*Context, error) {
 
 	headerLen := int(payloadLen + seqLen + serializeTypeLen + pathMethodLen)
 	headerBuffer, err := c.Peek(headerLen)
@@ -84,7 +83,7 @@ func Decode(c gnet.Conn) (*component.Context, error) {
 	method := servicePathAndMethod[1]
 	buffer := bytebufferpool.Get()
 	_, _ = buffer.Write(msgBuffer[headerLen+pathMethodLength:])
-	ctx := &component.Context{
+	ctx := &Context{
 		ServiceMethod: method,
 		ServicePath:   servicePath,
 		Payload:       buffer,
@@ -94,7 +93,7 @@ func Decode(c gnet.Conn) (*component.Context, error) {
 	}
 	return ctx, nil
 }
-func Encode(ctx *component.Context, v interface{}) *bytebufferpool.ByteBuffer {
+func Encode(ctx *Context, v interface{}) *bytebufferpool.ByteBuffer {
 	if v == nil {
 		panic("v nil")
 	}
@@ -105,7 +104,7 @@ func Encode(ctx *component.Context, v interface{}) *bytebufferpool.ByteBuffer {
 	if tmp, ok := v.([]byte); ok {
 		payload = tmp
 	} else {
-		payload, err = GameCodec(SerializeType(ctx.SerializeType)).Marshal(v)
+		payload, err = GetCodec(SerializeType(ctx.SerializeType)).Marshal(v)
 		if err != nil {
 			panic(err)
 		}

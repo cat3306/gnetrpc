@@ -10,7 +10,7 @@ const (
 )
 
 var (
-	coderSet = map[SerializeType]Codec{
+	codecSet = map[SerializeType]Codec{
 		Json:        &jsonCodec{},
 		String:      &stringCodec{},
 		ProtoBuffer: &protocBufferCodec{},
@@ -23,10 +23,10 @@ type Codec interface {
 	ToString() string
 }
 
-func GameCodec(t SerializeType) Codec {
-	coder := coderSet[t]
+func GetCodec(t SerializeType) Codec {
+	coder := codecSet[t]
 	if coder == nil {
-		coder = coderSet[Json]
+		coder = codecSet[Json]
 	}
 	return coder
 }
