@@ -1,18 +1,17 @@
 package gnetrpc
 
 import (
-	"context"
-	"fmt"
+	"github.com/cat3306/gnetrpc/protocol"
 	"github.com/cat3306/gnetrpc/rpclog"
 	"github.com/cat3306/gnetrpc/util"
 	"reflect"
-	"runtime"
 	"sync"
 )
 
 var typeOfError = reflect.TypeOf((*error)(nil)).Elem()
-
-var typeOfContext = reflect.TypeOf((*context.Context)(nil)).Elem()
+var typeOfCallMode = reflect.TypeOf((*CallMode)(nil))
+var typeOfContext = reflect.TypeOf((*protocol.Context)(nil))
+var typeOfSturct = reflect.TypeOf(struct{}{})
 
 type methodType struct {
 	sync.Mutex // protects counters
@@ -29,12 +28,12 @@ type functionType struct {
 	ReplyType  reflect.Type
 }
 
-type service struct {
-	name     string                   // name of service
-	value    reflect.Value            // receiver of methods for the service
-	typ      reflect.Type             // type of the receiver
-	method   map[string]*methodType   // registered methods
-	function map[string]*functionType // registered functions
+type Service struct {
+	name        string                 // name of Service
+	value       reflect.Value          // receiver of methods for the Service
+	typ         reflect.Type           // type of the receiver
+	method      map[string]*methodType // registered methods
+	asyncMethod map[string]*methodType
 }
 
 func isExportedOrBuiltinType(t reflect.Type) bool {
@@ -44,27 +43,19 @@ func isExportedOrBuiltinType(t reflect.Type) bool {
 	return util.IsExported(t.Name()) || t.PkgPath() == ""
 }
 
-func (s *service) call(ctx context.Context, mtype *methodType, argv, replyv reflect.Value) (err error) {
-	defer func() {
-		if r := recover(); r != nil {
-			buf := make([]byte, 4096)
-			n := runtime.Stack(buf, false)
-			buf = buf[:n]
-
-			err = fmt.Errorf("[service internal error]: %v, method: %s, argv: %+v, stack: %s",
-				r, mtype.method.Name, argv.Interface(), buf)
-			rpclog.Error(err)
-		}
-	}()
+func (s *Service) call(ctx *protocol.Context, mtype *methodType, argv, replyv reflect.Value, isAsync bool) (err error) {
 
 	function := mtype.method.Func
 	// Invoke the method, providing a new value for the reply.
-	returnValues := function.Call([]reflect.Value{s.value, reflect.ValueOf(ctx), argv, replyv})
-	// The return value for the method is an error.
-	errInter := returnValues[0].Interface()
-	if errInter != nil {
-		return errInter.(error)
+	var returnValues []reflect.Value
+	if isAsync {
+		returnValues = function.Call([]reflect.Value{s.value, reflect.ValueOf(ctx), argv, replyv, reflect.ValueOf(struct{}{})})
+	} else {
+		returnValues = function.Call([]reflect.Value{s.value, reflect.ValueOf(ctx), argv, replyv})
 	}
-
+	// The return value for the method is an error.
+	callModeInter := returnValues[0].Interface()
+	errInter := returnValues[1].Interface()
+	rpclog.Info(callModeInter, errInter)
 	return nil
 }

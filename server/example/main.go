@@ -1,10 +1,10 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"github.com/cat3306/gnetrpc"
 	"github.com/cat3306/gnetrpc/protocol"
+	"github.com/cat3306/gnetrpc/rpclog"
 )
 
 type Args struct {
@@ -16,26 +16,32 @@ type Reply struct {
 	C int
 }
 
-type Arith int
+type Arith struct {
+	set map[string]string
+}
 
-func (t *Arith) Mul(ctx context.Context, args *Args, reply *Reply) error {
+func (t *Arith) Mul(ctx *protocol.Context, args *Args, reply *Reply) (*gnetrpc.CallMode, error) {
 	reply.C = args.A * args.B
 	fmt.Printf("call: %d * %d = %d\n", args.A, args.B, reply.C)
-	return nil
+	return nil, nil
 }
 
-func (t *Arith) Add(ctx context.Context, args *Args, reply *Reply) error {
+func (t *Arith) Add(ctx *protocol.Context, args *Args, reply *Reply) (*gnetrpc.CallMode, error) {
 	reply.C = args.A + args.B
 	fmt.Printf("call: %d + %d = %d\n", args.A, args.B, reply.C)
-	return nil
+	return nil, nil
 }
 
-func (t *Arith) Say(ctx context.Context, args *string, reply *string) error {
+func (t *Arith) Say(ctx *protocol.Context, args *string, reply *string, tag struct{}) (*gnetrpc.CallMode, error) {
 	*reply = "hello " + *args
-	return nil
-}
-func (t *Arith) MakeLove(ctx *protocol.Context) (*gnetrpc.CallMode, error) {
+	rpclog.Info(*reply)
 	return nil, nil
+}
+func (t *Arith) MakeLove(ctx *protocol.Context) {
+	rpclog.Info(ctx.Seq)
+}
+func (t *Arith) AsyncMakeLove(ctx *protocol.Context, tag struct{}) {
+	rpclog.Info("AsyncMakeLove")
 }
 func main() {
 	s := gnetrpc.NewServer(

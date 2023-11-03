@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/cat3306/gnetrpc/protocol"
 	"net"
+	"time"
 )
 
 type CallReq struct {
@@ -21,11 +22,13 @@ func main() {
 	}
 	ctx := protocol.Context{
 		ServicePath:   "Arith",
-		ServiceMethod: "Add",
+		ServiceMethod: "AsyncMakeLove",
 		SerializeType: uint16(protocol.Json),
 		Seq:           123,
 	}
 	buffer := protocol.Encode(&ctx, &req)
-	conn.Write(buffer.Bytes())
-	select {}
+	for {
+		conn.Write(buffer.Bytes())
+		time.Sleep(time.Millisecond * 10)
+	}
 }

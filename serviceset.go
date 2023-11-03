@@ -1,28 +1,32 @@
 package gnetrpc
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"github.com/cat3306/gnetrpc/protocol"
 	"github.com/cat3306/gnetrpc/rpclog"
+	"github.com/panjf2000/ants/v2"
 	"reflect"
 	"sync"
 )
 
 type ServiceSet struct {
-	set map[string]*service
+	set map[string]*Service
 	mu  sync.RWMutex
 }
 
 func NewServiceSet() *ServiceSet {
 	return &ServiceSet{
-		set: map[string]*service{},
+		set: map[string]*Service{},
 	}
 }
-
-func (s *ServiceSet) suitableMethods(typ reflect.Type, reportErr bool) map[string]*methodType {
+func (s *ServiceSet) GetService(sp string) (bool, *Service) {
+	v, ok := s.set[sp]
+	return ok, v
+}
+func (s *ServiceSet) suitableMethods(typ reflect.Type, reportErr bool) (map[string]*methodType, map[string]*methodType) {
 	methods := make(map[string]*methodType)
+	asyncMethods := make(map[string]*methodType)
 	for m := 0; m < typ.NumMethod(); m++ {
 		method := typ.Method(m)
 		mtype := method.Type
@@ -31,66 +35,60 @@ func (s *ServiceSet) suitableMethods(typ reflect.Type, reportErr bool) map[strin
 		if method.PkgPath != "" {
 			continue
 		}
-		// Method needs four ins: receiver, context.Context, *args, *reply.
-		if mtype.NumIn() != 4 {
-			//if reportErr {
-			//	rpclog.Debug("method ", mname, " has wrong number of ins:", mtype.NumIn())
-			//}
+		// Method needs four ins: receiver, *protocol.Context, *args, *reply or struct
+		if !(mtype.NumIn() == 4 || mtype.NumIn() == 5) {
 			continue
 		}
-		// First arg must be context.Context
+		// First arg must be protocol.Context
 		ctxType := mtype.In(1)
-		if !ctxType.Implements(typeOfContext) {
-			//if reportErr {
-			//	rpclog.Debug("method ", mname, " must use context.Context as the first parameter")
-			//}
+		if !ctxType.AssignableTo(typeOfContext) {
 			continue
 		}
 
 		// Second arg need not be a pointer.
 		argType := mtype.In(2)
 		if !isExportedOrBuiltinType(argType) {
-			//if reportErr {
-			//	rpclog.Info(mname, " parameter type not exported: ", argType)
-			//}
 			continue
 		}
 		// Third arg must be a pointer.
 		replyType := mtype.In(3)
 		if replyType.Kind() != reflect.Ptr {
-			//if reportErr {
-			//	rpclog.Info("method", mname, " reply type not a pointer:", replyType)
-			//}
 			continue
+		}
+		if mtype.NumIn() == 5 {
+			structType := mtype.In(4)
+			if structType != typeOfSturct {
+				continue
+			}
 		}
 		// Reply type must be exported.
 		if !isExportedOrBuiltinType(replyType) {
-			//if reportErr {
-			//	rpclog.Info("method", mname, " reply type not exported:", replyType)
-			//}
 			continue
 		}
+
 		// Method needs one out.
-		if mtype.NumOut() != 1 {
-			//if reportErr {
-			//	rpclog.Info("method", mname, " has wrong number of outs:", mtype.NumOut())
-			//}
+		if mtype.NumOut() != 2 {
 			continue
 		}
 		// The return type of the method must be error.
-		if returnType := mtype.Out(0); returnType != typeOfError {
-			//if reportErr {
-			//	rpclog.Info("method", mname, " returns ", returnType.String(), " not error")
-			//}
+		if returnType := mtype.Out(0); returnType != typeOfCallMode {
 			continue
 		}
-		methods[mname] = &methodType{method: method, ArgType: argType, ReplyType: replyType}
+		if returnType := mtype.Out(1); returnType != typeOfError {
 
+			continue
+		}
+		if mtype.NumIn() == 4 {
+			methods[mname] = &methodType{method: method, ArgType: argType, ReplyType: replyType}
+		}
+		if mtype.NumIn() == 5 {
+			asyncMethods[mname] = &methodType{method: method, ArgType: argType, ReplyType: replyType}
+		}
 		// init pool for reflect.Type of args and reply
 		reflectTypePools.Init(argType)
 		reflectTypePools.Init(replyType)
 	}
-	return methods
+	return methods, asyncMethods
 }
 func (s *ServiceSet) Register(v interface{}, isPrint bool, name ...string) {
 	s.mu.Lock()
@@ -107,50 +105,62 @@ func (s *ServiceSet) Register(v interface{}, isPrint bool, name ...string) {
 		errorStr := "Register: no service name for type " + typ.String()
 		panic(errorStr)
 	}
-	tmpService := &service{
-		name:     sName,
-		value:    value,
-		typ:      typ,
-		method:   s.suitableMethods(typ, true),
-		function: nil,
+	methodSet, asyncMethods := s.suitableMethods(typ, true)
+	tmpService := &Service{
+		name:        sName,
+		value:       value,
+		typ:         typ,
+		method:      methodSet,
+		asyncMethod: asyncMethods,
 	}
 	if isPrint {
 		for _, m := range tmpService.method {
 			rpclog.Info(fmt.Sprintf("registered [%s.%s]", tmpService.name, m.method.Name))
 		}
+		for _, m := range tmpService.asyncMethod {
+			rpclog.Info(fmt.Sprintf("registered [%s.go_%s]", tmpService.name, m.method.Name))
+		}
+
 	}
 	s.set[tmpService.name] = tmpService
 }
-
-func (s *ServiceSet) Call(ctx *protocol.Context) {
+func (s *ServiceSet) Call(ctx *protocol.Context, gpool *ants.Pool) error {
 	servicePath := ctx.ServicePath
 	method := ctx.ServiceMethod
 	tmpService := s.set[servicePath]
 	if tmpService == nil {
-		err := errors.New("gnetrpc: can't find service " + servicePath)
-		rpclog.Error(err.Error())
-		return
+		return NotFoundService
 	}
-	mtype := tmpService.method[method]
-	if mtype == nil {
-		err := errors.New("rpcx: can't find method " + method)
-		rpclog.Error(err.Error())
-		return
+	var isAsync bool
+	mType := tmpService.method[method]
+	if mType == nil {
+		isAsync = true
+		mType = tmpService.asyncMethod[method]
 	}
-	replyv := reflectTypePools.Get(mtype.ReplyType)
-	argv := reflectTypePools.Get(mtype.ArgType)
-	codec := protocol.GetCodec(protocol.SerializeType(ctx.SerializeType))
-	if codec == nil {
-		err := errors.New("rpcx: can't find method " + method)
-		rpclog.Error(err.Error())
-		return
+	if mType == nil {
+		return NotFoundMethod
 	}
-	err := codec.Unmarshal(ctx.Payload.Bytes(), argv)
-	if err != nil {
-		err := errors.New("rpcx: can't find method " + method)
-		rpclog.Error(err.Error())
-		return
+	f := func() error {
+		replyv := reflectTypePools.Get(mType.ReplyType)
+		argv := reflectTypePools.Get(mType.ArgType)
+		codec := protocol.GetCodec(protocol.SerializeType(ctx.SerializeType))
+		if codec == nil {
+			return errors.New("invalid serialize type")
+		}
+		err := codec.Unmarshal(ctx.Payload.Bytes(), argv)
+		if err != nil {
+			return err
+		}
+		return tmpService.call(ctx, mType, reflect.ValueOf(argv), reflect.ValueOf(replyv), isAsync)
 	}
-	err = tmpService.call(context.Background(), mtype, reflect.ValueOf(argv), reflect.ValueOf(replyv))
-	return
+	if isAsync {
+		err := gpool.Submit(func() {
+			err := f()
+			if err != nil {
+				rpclog.Errorf("call async err:%s", err.Error())
+			}
+		})
+		return err
+	}
+	return f()
 }
