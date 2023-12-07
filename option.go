@@ -13,7 +13,11 @@ func WithPrintRegisteredMethod() OptionFn {
 		s.option.printMethod = true
 	}
 }
-
+func WithDefaultService() OptionFn {
+	return func(s *Server) {
+		s.option.defaultService = true
+	}
+}
 func WithMulticore(multicore bool) OptionFn {
 	return func(s *Server) {
 		s.option.gnetOptions.Multicore = multicore

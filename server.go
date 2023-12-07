@@ -9,15 +9,16 @@ import (
 	"github.com/panjf2000/ants/v2"
 	"github.com/panjf2000/gnet/v2"
 	"github.com/panjf2000/gnet/v2/pkg/pool/goroutine"
-	"runtime"
+	"runtime/debug"
 	"sync"
 	"time"
 )
 
 type serverOption struct {
-	printMethod bool
-	gnetOptions gnet.Options
-	antOption   ants.Options
+	printMethod    bool
+	defaultService bool
+	gnetOptions    gnet.Options
+	antOption      ants.Options
 }
 type Server struct {
 	gnet.BuiltinEventEngine
@@ -28,6 +29,7 @@ type Server struct {
 	option       serverOption
 	gPool        *ants.Pool
 	mainCtxChan  chan *protocol.Context
+	connMatrix   *connMatrix
 }
 
 func (s *Server) MainGoroutine() {
@@ -41,11 +43,8 @@ func (s *Server) MainGoroutine() {
 func (s *Server) process(ctx *protocol.Context) {
 	defer func() {
 		if r := recover(); r != nil {
-			buf := make([]byte, 4096)
-			n := runtime.Stack(buf, false)
-			buf = buf[:n]
-
-			err := fmt.Errorf("[server call internal error] service: %s, method: %s, stack: %s", ctx.ServiceMethod, ctx.ServicePath, util.BytesToString(buf))
+			msg := debug.Stack()
+			err := fmt.Errorf("[server call internal error] service: %s, method: %s, stack: %s,err:%s", ctx.ServicePath, ctx.ServiceMethod, util.BytesToString(msg), r)
 			rpclog.Error(err)
 		}
 	}()
@@ -60,7 +59,10 @@ func (s *Server) process(ctx *protocol.Context) {
 		rpclog.Errorf("process err:%s,service:%s, method:%s", err.Error(), servicePath, method)
 		return
 	}
-	s.serviceSet.Call(ctx, s.gPool)
+	err = s.serviceSet.Call(ctx, s)
+	if err != nil {
+		rpclog.Errorf("process err:%s,service:%s, method:%s", err.Error(), servicePath, method)
+	}
 
 }
 func (s *Server) OnBoot(engine gnet.Engine) (action gnet.Action) {
@@ -71,10 +73,18 @@ func (s *Server) OnShutdown(engine gnet.Engine) {
 }
 
 func (s *Server) OnOpen(c gnet.Conn) (out []byte, action gnet.Action) {
+	rpclog.Infof("client connect cid:%d", c.Fd())
+	s.connMatrix.Add(c)
 	return
 }
 
 func (s *Server) OnClose(c gnet.Conn, err error) (action gnet.Action) {
+	s.connMatrix.Remove(c.Fd())
+	reason := ""
+	if err != nil {
+		reason = err.Error()
+	}
+	rpclog.Infof("cid:%d close,reason:%s", c.Fd(), reason)
 	return
 }
 
@@ -92,6 +102,7 @@ func (s *Server) Register(v interface{}, name ...string) {
 	s.serviceSet.Register(v, s.option.printMethod, name...)
 }
 
+// RegisterRouter func(ctx *protocol.Context) or func(ctx *protocol.Context, tag struct{}) should by registered
 func (s *Server) RegisterRouter(v interface{}, name ...string) {
 	s.handlerSet.Register(v, s.option.printMethod, name...)
 }
@@ -113,9 +124,9 @@ func NewServer(options ...OptionFn) *Server {
 		serviceSet: NewServiceSet(),
 		handlerSet: NewHandlerSet(),
 		//router:     make(map[string]Handler),
-		//AsyncWrite: false, // 除非你想做进一步的优化测试，否则建议你设置为false
 		gPool:       goroutine.Default(),
 		mainCtxChan: make(chan *protocol.Context, 1024),
+		connMatrix:  newConnMatrix(),
 	}
 
 	for _, op := range options {
@@ -125,5 +136,8 @@ func NewServer(options ...OptionFn) *Server {
 	//if s.options["TCPKeepAlivePeriod"] == nil {
 	//	s.options["TCPKeepAlivePeriod"] = 3 * time.Minute
 	//}
+	if s.option.defaultService {
+		s.Register(new(BuiltinService))
+	}
 	return s
 }

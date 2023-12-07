@@ -114,7 +114,7 @@ func Encode(ctx *Context, v interface{}) *bytebufferpool.ByteBuffer {
 	packetEndian.PutUint32(headBuffer, uint32(len(payload)))
 	packetEndian.PutUint64(headBuffer[payloadLen:], ctx.Seq)
 	packetEndian.PutUint16(headBuffer[payloadLen+seqLen:], ctx.SerializeType)
-	methodStr := ctx.ServicePath + "@" + ctx.ServiceMethod
+	methodStr := util.JoinServiceMethod(ctx.ServicePath, ctx.ServiceMethod)
 	packetEndian.PutUint32(headBuffer[payloadLen+seqLen+serializeTypeLen:], uint32(len(methodStr)))
 
 	_, _ = buffer.Write(headBuffer)

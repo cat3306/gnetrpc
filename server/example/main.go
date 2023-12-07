@@ -23,7 +23,7 @@ type Arith struct {
 func (t *Arith) Mul(ctx *protocol.Context, args *Args, reply *Reply) (*gnetrpc.CallMode, error) {
 	reply.C = args.A * args.B
 	fmt.Printf("call: %d * %d = %d\n", args.A, args.B, reply.C)
-	return nil, nil
+	return gnetrpc.CallSelf(), nil
 }
 
 func (t *Arith) Add(ctx *protocol.Context, args *Args, reply *Reply) (*gnetrpc.CallMode, error) {
@@ -47,6 +47,7 @@ func main() {
 	s := gnetrpc.NewServer(
 		gnetrpc.WithMulticore(true),
 		gnetrpc.WithPrintRegisteredMethod(),
+		gnetrpc.WithDefaultService(),
 	)
 	s.Register(new(Arith))
 	s.RegisterRouter(new(Arith))

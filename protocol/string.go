@@ -1,8 +1,8 @@
 package protocol
 
 import (
-	"errors"
 	"fmt"
+	"github.com/cat3306/gnetrpc/util"
 	"unsafe"
 )
 
@@ -18,11 +18,15 @@ func (r *stringCodec) Unmarshal(b []byte, v interface{}) error {
 		*vv = *(*string)(unsafe.Pointer(&b))
 		return nil
 	}
-	return errors.New("v type not string")
+	return fmt.Errorf("v type not string,type is %T", v)
 }
 func (r *stringCodec) Marshal(v interface{}) ([]byte, error) {
-	if vv, ok := v.(string); ok {
-		return []byte(vv), nil
+	switch v.(type) {
+	case string:
+		return util.StringToBytes(v.(string)), nil
+	case *string:
+		return util.StringToBytes(*v.(*string)), nil
+	default:
+		return nil, fmt.Errorf("v type not string,type is %T", v)
 	}
-	return nil, fmt.Errorf("v type not string")
 }

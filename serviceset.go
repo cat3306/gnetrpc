@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"github.com/cat3306/gnetrpc/protocol"
 	"github.com/cat3306/gnetrpc/rpclog"
-	"github.com/panjf2000/ants/v2"
+	"github.com/valyala/bytebufferpool"
 	"reflect"
 	"sync"
 )
@@ -124,7 +124,7 @@ func (s *ServiceSet) Register(v interface{}, isPrint bool, name ...string) {
 	}
 	s.set[tmpService.name] = tmpService
 }
-func (s *ServiceSet) Call(ctx *protocol.Context, gpool *ants.Pool) error {
+func (s *ServiceSet) Call(ctx *protocol.Context, server *Server) error {
 	servicePath := ctx.ServicePath
 	method := ctx.ServiceMethod
 	tmpService := s.set[servicePath]
@@ -140,21 +140,40 @@ func (s *ServiceSet) Call(ctx *protocol.Context, gpool *ants.Pool) error {
 	if mType == nil {
 		return NotFoundMethod
 	}
+	codec := protocol.GetCodec(protocol.SerializeType(ctx.SerializeType))
+	if codec == nil {
+		return errors.New("invalid serialize type")
+	}
 	f := func() error {
 		replyv := reflectTypePools.Get(mType.ReplyType)
 		argv := reflectTypePools.Get(mType.ArgType)
-		codec := protocol.GetCodec(protocol.SerializeType(ctx.SerializeType))
-		if codec == nil {
-			return errors.New("invalid serialize type")
-		}
+
 		err := codec.Unmarshal(ctx.Payload.Bytes(), argv)
 		if err != nil {
 			return err
 		}
-		return tmpService.call(ctx, mType, reflect.ValueOf(argv), reflect.ValueOf(replyv), isAsync)
+		callModel, err := tmpService.call(ctx, mType, reflect.ValueOf(argv), reflect.ValueOf(replyv), isAsync)
+		if err != nil {
+			return err
+		}
+		if callModel == nil {
+			return errors.New("call mode nil")
+		}
+		switch callModel.Call {
+		case None:
+			return nil
+		case Self:
+			buffer := protocol.Encode(ctx, replyv)
+			_, err = ctx.Conn.Write(buffer.Bytes())
+			bytebufferpool.Put(buffer)
+			return nil
+		}
+
+		//rpclog.Infof("args %s", string(data))
+		return nil
 	}
 	if isAsync {
-		err := gpool.Submit(func() {
+		err := server.gPool.Submit(func() {
 			err := f()
 			if err != nil {
 				rpclog.Errorf("call async err:%s", err.Error())
@@ -162,5 +181,6 @@ func (s *ServiceSet) Call(ctx *protocol.Context, gpool *ants.Pool) error {
 		})
 		return err
 	}
+
 	return f()
 }
