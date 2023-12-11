@@ -6,147 +6,147 @@ import (
 	"time"
 )
 
-type OptionFn func(*Server)
+type OptionFn func(*serverOption)
 
 func WithPrintRegisteredMethod() OptionFn {
-	return func(s *Server) {
-		s.option.printMethod = true
+	return func(s *serverOption) {
+		s.printMethod = true
 	}
 }
 func WithDefaultService() OptionFn {
-	return func(s *Server) {
-		s.option.defaultService = true
+	return func(s *serverOption) {
+		s.defaultService = true
 	}
 }
 func WithMulticore(multicore bool) OptionFn {
-	return func(s *Server) {
-		s.option.gnetOptions.Multicore = multicore
+	return func(s *serverOption) {
+		s.gnetOptions.Multicore = multicore
 	}
 }
 
 func WithLockOSThread(lockOSThread bool) OptionFn {
-	return func(s *Server) {
-		s.option.gnetOptions.LockOSThread = lockOSThread
+	return func(s *serverOption) {
+		s.gnetOptions.LockOSThread = lockOSThread
 	}
 }
 
 func WithReadBufferCap(readBufferCap int) OptionFn {
-	return func(s *Server) {
-		s.option.gnetOptions.ReadBufferCap = readBufferCap
+	return func(s *serverOption) {
+		s.gnetOptions.ReadBufferCap = readBufferCap
 	}
 }
 
 func WithWriteBufferCap(writeBufferCap int) OptionFn {
-	return func(s *Server) {
-		s.option.gnetOptions.WriteBufferCap = writeBufferCap
+	return func(s *serverOption) {
+		s.gnetOptions.WriteBufferCap = writeBufferCap
 	}
 }
 
 func WithLoadBalancing(lb int) OptionFn {
-	return func(s *Server) {
-		s.option.gnetOptions.LB = gnet.LoadBalancing(lb)
+	return func(s *serverOption) {
+		s.gnetOptions.LB = gnet.LoadBalancing(lb)
 	}
 }
 
 func WithNumEventLoop(numEventLoop int) OptionFn {
-	return func(s *Server) {
-		s.option.gnetOptions.NumEventLoop = numEventLoop
+	return func(s *serverOption) {
+		s.gnetOptions.NumEventLoop = numEventLoop
 	}
 }
 
 func WithReusePort(reusePort bool) OptionFn {
-	return func(s *Server) {
-		s.option.gnetOptions.ReusePort = reusePort
+	return func(s *serverOption) {
+		s.gnetOptions.ReusePort = reusePort
 	}
 }
 
 func WithReuseAddr(reuseAddr bool) OptionFn {
-	return func(s *Server) {
-		s.option.gnetOptions.ReuseAddr = reuseAddr
+	return func(s *serverOption) {
+		s.gnetOptions.ReuseAddr = reuseAddr
 	}
 }
 
 func WithTCPKeepAlive(tcpKeepAlive time.Duration) OptionFn {
-	return func(s *Server) {
-		s.option.gnetOptions.TCPKeepAlive = tcpKeepAlive
+	return func(s *serverOption) {
+		s.gnetOptions.TCPKeepAlive = tcpKeepAlive
 	}
 }
 
 func WithTCPNoDelay(tcpNoDelay int) OptionFn {
-	return func(s *Server) {
-		s.option.gnetOptions.TCPNoDelay = gnet.TCPSocketOpt(tcpNoDelay)
+	return func(s *serverOption) {
+		s.gnetOptions.TCPNoDelay = gnet.TCPSocketOpt(tcpNoDelay)
 	}
 }
 
 func WithSocketRecvBuffer(recvBuf int) OptionFn {
-	return func(s *Server) {
-		s.option.gnetOptions.SocketRecvBuffer = recvBuf
+	return func(s *serverOption) {
+		s.gnetOptions.SocketRecvBuffer = recvBuf
 	}
 }
 
 func WithSocketSendBuffer(sendBuf int) OptionFn {
-	return func(s *Server) {
-		s.option.gnetOptions.SocketSendBuffer = sendBuf
+	return func(s *serverOption) {
+		s.gnetOptions.SocketSendBuffer = sendBuf
 	}
 }
 
 func WithTicker(ticker bool) OptionFn {
-	return func(s *Server) {
-		s.option.gnetOptions.Ticker = ticker
+	return func(s *serverOption) {
+		s.gnetOptions.Ticker = ticker
 	}
 }
 
 func WithLogPath(fileName string) OptionFn {
-	return func(s *Server) {
-		s.option.gnetOptions.LogPath = fileName
+	return func(s *serverOption) {
+		s.gnetOptions.LogPath = fileName
 	}
 }
 
 func WithLogLevel(lvl logging.Level) OptionFn {
-	return func(s *Server) {
-		s.option.gnetOptions.LogLevel = lvl
+	return func(s *serverOption) {
+		s.gnetOptions.LogLevel = lvl
 	}
 }
 
 func WithLogger(logger logging.Logger) OptionFn {
-	return func(s *Server) {
-		s.option.gnetOptions.Logger = logger
+	return func(s *serverOption) {
+		s.gnetOptions.Logger = logger
 	}
 }
 
 func WithMulticastInterfaceIndex(idx int) OptionFn {
-	return func(s *Server) {
-		s.option.gnetOptions.MulticastInterfaceIndex = idx
+	return func(s *serverOption) {
+		s.gnetOptions.MulticastInterfaceIndex = idx
 	}
 }
 
 func WithAntExpiryDuration(expiryDuration time.Duration) OptionFn {
-	return func(s *Server) {
-		s.option.antOption.ExpiryDuration = expiryDuration
+	return func(s *serverOption) {
+		s.antOption.ExpiryDuration = expiryDuration
 	}
 }
 
 func WithPreAlloc(preAlloc bool) OptionFn {
-	return func(s *Server) {
-		s.option.antOption.PreAlloc = preAlloc
+	return func(s *serverOption) {
+		s.antOption.PreAlloc = preAlloc
 	}
 }
 
 func WithMaxBlockingTasks(maxBlockingTasks int) OptionFn {
-	return func(s *Server) {
-		s.option.antOption.MaxBlockingTasks = maxBlockingTasks
+	return func(s *serverOption) {
+		s.antOption.MaxBlockingTasks = maxBlockingTasks
 	}
 }
 
 func WithNonblocking(nonblocking bool) OptionFn {
-	return func(s *Server) {
-		s.option.antOption.Nonblocking = nonblocking
+	return func(s *serverOption) {
+		s.antOption.Nonblocking = nonblocking
 	}
 }
 
 func WithPanicHandler(panicHandler func(interface{})) OptionFn {
-	return func(s *Server) {
-		s.option.antOption.PanicHandler = panicHandler
+	return func(s *serverOption) {
+		s.antOption.PanicHandler = panicHandler
 	}
 }
 
@@ -157,7 +157,7 @@ func WithPanicHandler(panicHandler func(interface{})) OptionFn {
 //}
 
 func WithDisablePurge(disable bool) OptionFn {
-	return func(s *Server) {
-		s.option.antOption.DisablePurge = disable
+	return func(s *serverOption) {
+		s.antOption.DisablePurge = disable
 	}
 }

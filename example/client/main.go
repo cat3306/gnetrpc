@@ -35,7 +35,7 @@ func main() {
 	}
 	client.Run()
 	ctx := protocol.Context{
-		ServicePath:   "BuiltinService",
+		ServicePath:   "Builtin",
 		ServiceMethod: "Heartbeat",
 		SerializeType: uint16(protocol.String),
 		Seq:           123,

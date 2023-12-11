@@ -26,7 +26,7 @@ type Server struct {
 	serviceMapMu sync.RWMutex
 	serviceSet   *ServiceSet
 	handlerSet   *HandlerSet
-	option       serverOption
+	option       *serverOption
 	gPool        *ants.Pool
 	mainCtxChan  chan *protocol.Context
 	connMatrix   *connMatrix
@@ -98,12 +98,13 @@ func (s *Server) OnTraffic(c gnet.Conn) (action gnet.Action) {
 	s.mainCtxChan <- ctx
 	return
 }
-func (s *Server) Register(v interface{}, name ...string) {
+func (s *Server) Register(v IService, name ...string) {
 	s.serviceSet.Register(v, s.option.printMethod, name...)
+	s.registerRouter(v, name...)
 }
 
-// RegisterRouter func(ctx *protocol.Context) or func(ctx *protocol.Context, tag struct{}) should by registered
-func (s *Server) RegisterRouter(v interface{}, name ...string) {
+// registerRouter func(ctx *protocol.Context) or func(ctx *protocol.Context, tag struct{}) should by registered
+func (s *Server) registerRouter(v IService, name ...string) {
 	s.handlerSet.Register(v, s.option.printMethod, name...)
 }
 
@@ -127,17 +128,18 @@ func NewServer(options ...OptionFn) *Server {
 		gPool:       goroutine.Default(),
 		mainCtxChan: make(chan *protocol.Context, 1024),
 		connMatrix:  newConnMatrix(),
+		option:      new(serverOption),
 	}
 
 	for _, op := range options {
-		op(s)
+		op(s.option)
 	}
 
 	//if s.options["TCPKeepAlivePeriod"] == nil {
 	//	s.options["TCPKeepAlivePeriod"] = 3 * time.Minute
 	//}
 	if s.option.defaultService {
-		s.Register(new(BuiltinService))
+		s.Register(new(BuiltinService), "Builtin")
 	}
 	return s
 }

@@ -49,7 +49,7 @@ func (h *HandlerSet) ExecuteHandler(ctx *protocol.Context, gPool *ants.Pool) err
 	})
 	return err
 }
-func (h *HandlerSet) Register(v interface{}, isPrint bool, name ...string) {
+func (h *HandlerSet) Register(v IService, isPrint bool, name ...string) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	value := reflect.ValueOf(v)

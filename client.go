@@ -7,11 +7,15 @@ import (
 	"time"
 )
 
-func NewClient(options ...gnet.Option) (*Client, error) {
+func NewClient(options ...OptionFn) (*Client, error) {
 	c := &Client{
 		mainCtxChan: make(chan *protocol.Context, 1024),
+		option:      new(serverOption),
 	}
-	cli, err := gnet.NewClient(c, options...)
+	for _, op := range options {
+		op(c.option)
+	}
+	cli, err := gnet.NewClient(c, gnet.WithOptions(c.option.gnetOptions))
 	if err != nil {
 		return nil, err
 	}
@@ -20,6 +24,7 @@ func NewClient(options ...gnet.Option) (*Client, error) {
 }
 
 type Client struct {
+	option *serverOption
 	*gnet.BuiltinEventEngine
 	gCli        *gnet.Client
 	mainCtxChan chan *protocol.Context

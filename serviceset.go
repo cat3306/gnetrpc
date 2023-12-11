@@ -90,7 +90,7 @@ func (s *ServiceSet) suitableMethods(typ reflect.Type, reportErr bool) (map[stri
 	}
 	return methods, asyncMethods
 }
-func (s *ServiceSet) Register(v interface{}, isPrint bool, name ...string) {
+func (s *ServiceSet) Register(v IService, isPrint bool, name ...string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	value := reflect.ValueOf(v)
@@ -147,7 +147,10 @@ func (s *ServiceSet) Call(ctx *protocol.Context, server *Server) error {
 	f := func() error {
 		replyv := reflectTypePools.Get(mType.ReplyType)
 		argv := reflectTypePools.Get(mType.ArgType)
-
+		defer func() {
+			reflectTypePools.Put(mType.ArgType, argv)
+			reflectTypePools.Put(mType.ReplyType, replyv)
+		}()
 		err := codec.Unmarshal(ctx.Payload.Bytes(), argv)
 		if err != nil {
 			return err
@@ -159,6 +162,7 @@ func (s *ServiceSet) Call(ctx *protocol.Context, server *Server) error {
 		if callModel == nil {
 			return errors.New("call mode nil")
 		}
+
 		switch callModel.Call {
 		case None:
 			return nil

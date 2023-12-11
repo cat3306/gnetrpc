@@ -10,6 +10,9 @@ const BuiltinServiceName = "BuiltinService"
 type BuiltinService struct {
 }
 
+func (b *BuiltinService) Init(v ...interface{}) IService {
+	return b
+}
 func (b *BuiltinService) Heartbeat(ctx *protocol.Context, args *string, reply *string) (*CallMode, error) {
 	rpclog.Info(*args)
 	*reply = "❤️"
