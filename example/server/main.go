@@ -41,7 +41,7 @@ func (t *Arith) Say(ctx *protocol.Context, args *string, reply *string, tag stru
 	return nil, nil
 }
 func (t *Arith) MakeLove(ctx *protocol.Context) {
-	rpclog.Info(ctx.Seq)
+	rpclog.Info(ctx.MsgSeq)
 }
 func (t *Arith) AsyncMakeLove(ctx *protocol.Context, tag struct{}) {
 	rpclog.Info("AsyncMakeLove")

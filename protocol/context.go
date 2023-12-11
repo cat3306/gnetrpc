@@ -7,12 +7,13 @@ import (
 )
 
 type Context struct {
+	H             *Header
 	Payload       *bytebufferpool.ByteBuffer
 	Conn          gnet.Conn
 	ServicePath   string
 	ServiceMethod string
 	Metadata      map[string]string
-	SerializeType uint16
-	Seq           uint64
-	Ctx           context.Context
+	//SerializeType uint8
+	MsgSeq uint64
+	Ctx    context.Context
 }

@@ -18,8 +18,13 @@ func TestClient(t *testing.T) {
 	ctx := protocol.Context{
 		ServicePath:   "Arith",
 		ServiceMethod: "Add",
-		SerializeType: uint16(protocol.Json),
-		Seq:           123,
+		H: &protocol.Header{
+			MagicNumber:   0,
+			Version:       0,
+			HeartBeat:     0,
+			SerializeType: uint8(protocol.Json),
+		},
+		MsgSeq: 123,
 	}
 	buffer := protocol.Encode(&ctx, &req)
 	conn.Write(buffer.Bytes())

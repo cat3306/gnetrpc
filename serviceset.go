@@ -140,7 +140,7 @@ func (s *ServiceSet) Call(ctx *protocol.Context, server *Server) error {
 	if mType == nil {
 		return NotFoundMethod
 	}
-	codec := protocol.GetCodec(protocol.SerializeType(ctx.SerializeType))
+	codec := protocol.GetCodec(protocol.SerializeType(ctx.H.SerializeType))
 	if codec == nil {
 		return errors.New("invalid serialize type")
 	}

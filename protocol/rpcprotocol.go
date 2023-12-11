@@ -12,7 +12,7 @@ import (
 
 // 0                     4                       12          14
 // +---------------------+-----------------------+-----------+
-// |   payload len       |       seq             | code type |
+// |   header      |       seq             | code type |
 // +---------------------+-----------------------+-----------+
 // | path and method len |  path@method       			 	 |
 // +---------------------------------------------------------+                                   		            			 +
@@ -21,75 +21,95 @@ import (
 // |                                  						 |
 // +---------------------------------------------------------+
 
+// header(4 byte)+msgSeq(8 byte)+pathMethodLen(4 byte)+metaDataLen(4 byte)+payloadLen(4 byte)
+// path@method(n byte)+metaData(n byte)+payload(n byte)
 const (
-	payloadLen       = uint32(4)
-	seqLen           = uint32(8)
-	pathMethodLen    = uint32(4)
+	headerLen     = uint32(4)
+	msgSeqLen     = uint32(8)
+	pathMethodLen = uint32(4)
+	metaDataLen   = uint32(4)
+	payloadLen    = uint32(4)
+	//seqLen        = uint32(8)
+
 	serializeTypeLen = uint32(2)
 
-	maxBufferCap = 1 << 24 //16M
+	maxBufferCap = uint32(1 << 24) //16M
 )
 
 var (
-	packetEndian        = binary.LittleEndian
-	ErrIncompletePacket = errors.New("incomplete packet")
-	ErrTooLargePacket   = errors.New("too large packet")
-	ErrDiscardedPacket  = errors.New("discarded not equal msg len")
+	packetEndian         = binary.LittleEndian
+	ErrIncompletePacket  = errors.New("incomplete packet")
+	ErrTooLargePacket    = errors.New("too large packet")
+	ErrDiscardedPacket   = errors.New("discarded not equal msg len")
+	ErrInvalidMethodPath = errors.New("invalid method path")
 )
 
 func Decode(c gnet.Conn) (*Context, error) {
-
-	headerLen := int(payloadLen + seqLen + serializeTypeLen + pathMethodLen)
-	headerBuffer, err := c.Peek(headerLen)
+	fixedLen := headerLen + msgSeqLen + pathMethodLen + metaDataLen + payloadLen
+	fixedBuffer, err := c.Peek(int(fixedLen))
 	if err != nil {
 		return nil, err
 	}
-	if len(headerBuffer) < headerLen {
+	if len(fixedBuffer) < int(fixedLen) {
 		return nil, ErrIncompletePacket
 	}
-	payloadLength := packetEndian.Uint32(headerBuffer[:payloadLen])
+	header := fixedBuffer[:headerLen]
+	msgSeq := packetEndian.Uint64(fixedBuffer[headerLen : headerLen+msgSeqLen])
+	pathMethodLength := packetEndian.Uint32(fixedBuffer[headerLen+msgSeqLen : headerLen+msgSeqLen+pathMethodLen])
+	metaDataLength := packetEndian.Uint32(fixedBuffer[headerLen+msgSeqLen+pathMethodLen : headerLen+msgSeqLen+pathMethodLen+metaDataLen])
+	payloadLength := packetEndian.Uint32(fixedBuffer[headerLen+msgSeqLen+pathMethodLen+metaDataLen : headerLen+msgSeqLen+pathMethodLen+metaDataLen+payloadLen])
 
-	seq := packetEndian.Uint64(headerBuffer[payloadLen : payloadLen+seqLen])
-
-	serializeType := packetEndian.Uint16(headerBuffer[payloadLen+seqLen : payloadLen+seqLen+serializeTypeLen])
-
-	pathMethodLength := int(packetEndian.Uint32(headerBuffer[payloadLen+seqLen+serializeTypeLen : payloadLen+seqLen+serializeTypeLen+pathMethodLen]))
-
-	msgLen := headerLen + int(payloadLength) + pathMethodLength
-	if msgLen > maxBufferCap {
+	packetLen := fixedLen + pathMethodLength + metaDataLength + payloadLength
+	if packetLen > maxBufferCap {
 		return nil, ErrTooLargePacket
 	}
-	if c.InboundBuffered() < msgLen {
+
+	if c.InboundBuffered() < int(packetLen) {
 		return nil, ErrIncompletePacket
 	}
-	msgBuffer, err := c.Peek(msgLen)
+
+	packetBuffer, err := c.Peek(int(packetLen))
 	if err != nil {
 		return nil, err
 	}
-	discarded, err := c.Discard(msgLen)
+	discarded, err := c.Discard(int(packetLen))
 	if err != nil {
 		return nil, err
 	}
-	if discarded != msgLen {
+	if discarded != int(packetLen) {
 		rpclog.Errorf("discarded")
 		return nil, ErrDiscardedPacket
 	}
-	methodBuffer := msgBuffer[headerLen : headerLen+pathMethodLength]
-	servicePathAndMethod := strings.Split(util.BytesToString(methodBuffer), "@")
-	if len(servicePathAndMethod) != 2 {
-
+	methodData := packetBuffer[fixedLen : fixedLen+pathMethodLength]
+	metaData := packetBuffer[fixedLen+pathMethodLength : fixedLen+pathMethodLength+metaDataLength]
+	payload := packetBuffer[fixedLen+pathMethodLength+metaDataLength:]
+	pathAndMethod := strings.Split(util.BytesToString(methodData), "@")
+	if len(pathAndMethod) != 2 {
+		return nil, ErrInvalidMethodPath
 	}
-	servicePath := servicePathAndMethod[0]
-	method := servicePathAndMethod[1]
+	path := pathAndMethod[0]
+	method := pathAndMethod[1]
 	buffer := bytebufferpool.Get()
-	_, _ = buffer.Write(msgBuffer[headerLen+pathMethodLength:])
+	_, _ = buffer.Write(payload)
 	ctx := &Context{
+		H: &Header{
+			MagicNumber:   header[0],
+			Version:       header[1],
+			HeartBeat:     header[2],
+			SerializeType: header[3],
+		},
 		ServiceMethod: method,
-		ServicePath:   servicePath,
+		ServicePath:   path,
 		Payload:       buffer,
-		SerializeType: serializeType,
 		Conn:          c,
-		Seq:           seq,
+		MsgSeq:        msgSeq,
+	}
+	codec := GetCodec(Json)
+	if len(metaData) != 0 {
+		err = codec.Unmarshal(metaData, &ctx.Metadata)
+		if err != nil {
+			return nil, err
+		}
 	}
 	return ctx, nil
 }
@@ -98,27 +118,44 @@ func Encode(ctx *Context, v interface{}) *bytebufferpool.ByteBuffer {
 		panic("v nil")
 	}
 	var (
-		payload []byte
-		err     error
+		payload  []byte
+		err      error
+		metaData []byte
 	)
+	codec := GetCodec(SerializeType(ctx.H.SerializeType))
+	if ctx.Metadata != nil && len(ctx.Metadata) != 0 {
+		pc := GetCodec(Json)
+		metaData, err = pc.Marshal(ctx.Metadata)
+	}
+	if err != nil {
+		panic(err)
+	}
 	if tmp, ok := v.([]byte); ok {
 		payload = tmp
 	} else {
-		payload, err = GetCodec(SerializeType(ctx.SerializeType)).Marshal(v)
+		payload, err = codec.Marshal(v)
 		if err != nil {
 			panic(err)
 		}
 	}
 	buffer := bytebufferpool.Get()
-	headBuffer := make([]byte, int(payloadLen+seqLen+serializeTypeLen+pathMethodLen))
-	packetEndian.PutUint32(headBuffer, uint32(len(payload)))
-	packetEndian.PutUint64(headBuffer[payloadLen:], ctx.Seq)
-	packetEndian.PutUint16(headBuffer[payloadLen+seqLen:], ctx.SerializeType)
+	fixedLen := headerLen + msgSeqLen + pathMethodLen + metaDataLen + payloadLen
+	fixedBuffer := make([]byte, int(fixedLen))
+	fixedBuffer[0] = ctx.H.MagicNumber
+	fixedBuffer[1] = ctx.H.Version
+	fixedBuffer[2] = ctx.H.HeartBeat
+	fixedBuffer[3] = ctx.H.SerializeType
+	//copy(fixedBuffer[:headerLen], ctx.H[:])
+	packetEndian.PutUint64(fixedBuffer[headerLen:], ctx.MsgSeq)
+	//packetEndian.PutUint16(fixedBuffer[payloadLen+seqLen:], ctx.SerializeType)
 	methodStr := util.JoinServiceMethod(ctx.ServicePath, ctx.ServiceMethod)
-	packetEndian.PutUint32(headBuffer[payloadLen+seqLen+serializeTypeLen:], uint32(len(methodStr)))
+	packetEndian.PutUint32(fixedBuffer[headerLen+msgSeqLen:], uint32(len(methodStr)))
+	packetEndian.PutUint32(fixedBuffer[headerLen+msgSeqLen+pathMethodLen:], uint32(len(metaData)))
+	packetEndian.PutUint32(fixedBuffer[headerLen+msgSeqLen+pathMethodLen+metaDataLen:], uint32(len(payload)))
 
-	_, _ = buffer.Write(headBuffer)
+	_, _ = buffer.Write(fixedBuffer)
 	_, _ = buffer.Write(util.StringToBytes(methodStr))
+	_, _ = buffer.Write(metaData)
 	_, _ = buffer.Write(payload)
 	return buffer
 }

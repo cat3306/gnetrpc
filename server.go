@@ -22,14 +22,15 @@ type serverOption struct {
 }
 type Server struct {
 	gnet.BuiltinEventEngine
-	eng          gnet.Engine
-	serviceMapMu sync.RWMutex
-	serviceSet   *ServiceSet
-	handlerSet   *HandlerSet
-	option       *serverOption
-	gPool        *ants.Pool
-	mainCtxChan  chan *protocol.Context
-	connMatrix   *connMatrix
+	eng           gnet.Engine
+	serviceMapMu  sync.RWMutex
+	serviceSet    *ServiceSet
+	handlerSet    *HandlerSet
+	option        *serverOption
+	gPool         *ants.Pool
+	mainCtxChan   chan *protocol.Context
+	connMatrix    *connMatrix
+	hotHandlerNum int32
 }
 
 func (s *Server) MainGoroutine() {
@@ -59,6 +60,7 @@ func (s *Server) process(ctx *protocol.Context) {
 		rpclog.Errorf("process err:%s,service:%s, method:%s", err.Error(), servicePath, method)
 		return
 	}
+	
 	err = s.serviceSet.Call(ctx, s)
 	if err != nil {
 		rpclog.Errorf("process err:%s,service:%s, method:%s", err.Error(), servicePath, method)

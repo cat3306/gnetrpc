@@ -37,8 +37,17 @@ func main() {
 	ctx := protocol.Context{
 		ServicePath:   "Builtin",
 		ServiceMethod: "Heartbeat",
-		SerializeType: uint16(protocol.String),
-		Seq:           123,
+		Metadata: map[string]string{
+			"abc":  "123",
+			"name": "joker",
+		},
+		H: &protocol.Header{
+			MagicNumber:   0,
+			Version:       0,
+			HeartBeat:     0,
+			SerializeType: uint8(protocol.String),
+		},
+		MsgSeq: 123,
 	}
 	buffer := protocol.Encode(&ctx, "💓")
 	for {
