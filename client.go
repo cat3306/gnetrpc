@@ -57,7 +57,11 @@ func (c *Client) OnOpen(conn gnet.Conn) ([]byte, gnet.Action) {
 }
 
 func (c *Client) OnClose(conn gnet.Conn, err error) gnet.Action {
-
+	errMsg := ""
+	if err != nil {
+		errMsg = err.Error()
+	}
+	rpclog.Warnf("conn close err:%s", errMsg)
 	return gnet.None
 }
 func (c *Client) CtxChan() <-chan *protocol.Context {

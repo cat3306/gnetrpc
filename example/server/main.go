@@ -1,8 +1,10 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"github.com/cat3306/gnetrpc"
+	"github.com/cat3306/gnetrpc/plugin"
 	"github.com/cat3306/gnetrpc/protocol"
 	"github.com/cat3306/gnetrpc/rpclog"
 )
@@ -51,6 +53,16 @@ func main() {
 		gnetrpc.WithMulticore(true),
 		gnetrpc.WithPrintRegisteredMethod(),
 		gnetrpc.WithDefaultService(),
+	)
+	s.UseAuthFunc(func(ctx *protocol.Context, token string) error {
+		if token != "鸳鸯擦，鸳鸯体，你爱我，我爱你" {
+			return errors.New("你不爱我 !")
+		}
+		return nil
+	})
+	s.AddPlugin(
+		new(plugin.ConnectPlugin),
+		new(plugin.BlacklistPlugin).Add("127.0.0.1"),
 	)
 	s.Register(new(Arith))
 	err := s.Run(gnetrpc.TcpNetwork, ":7898")

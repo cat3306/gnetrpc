@@ -54,6 +54,12 @@ func Decode(c gnet.Conn) (*Context, error) {
 		return nil, ErrIncompletePacket
 	}
 	header := fixedBuffer[:headerLen]
+	h := Header{
+		MagicNumber:   header[0],
+		Version:       header[1],
+		HeartBeat:     header[2],
+		SerializeType: header[3],
+	}
 	msgSeq := packetEndian.Uint64(fixedBuffer[headerLen : headerLen+msgSeqLen])
 	pathMethodLength := packetEndian.Uint32(fixedBuffer[headerLen+msgSeqLen : headerLen+msgSeqLen+pathMethodLen])
 	metaDataLength := packetEndian.Uint32(fixedBuffer[headerLen+msgSeqLen+pathMethodLen : headerLen+msgSeqLen+pathMethodLen+metaDataLen])
@@ -92,12 +98,7 @@ func Decode(c gnet.Conn) (*Context, error) {
 	buffer := bytebufferpool.Get()
 	_, _ = buffer.Write(payload)
 	ctx := &Context{
-		H: &Header{
-			MagicNumber:   header[0],
-			Version:       header[1],
-			HeartBeat:     header[2],
-			SerializeType: header[3],
-		},
+		H:             &h,
 		ServiceMethod: method,
 		ServicePath:   path,
 		Payload:       buffer,
@@ -111,11 +112,18 @@ func Decode(c gnet.Conn) (*Context, error) {
 			return nil, err
 		}
 	}
+	err = ctx.H.Check()
+	if err != nil {
+		return nil, err
+	}
 	return ctx, nil
 }
 func Encode(ctx *Context, v interface{}) *bytebufferpool.ByteBuffer {
 	if v == nil {
 		panic("v nil")
+	}
+	if ctx.H == nil {
+		panic("encode header nil")
 	}
 	var (
 		payload  []byte

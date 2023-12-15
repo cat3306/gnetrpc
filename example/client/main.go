@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/cat3306/gnetrpc"
 	"github.com/cat3306/gnetrpc/protocol"
+	"github.com/cat3306/gnetrpc/share"
 	"net"
 	"time"
 )
@@ -38,12 +39,13 @@ func main() {
 		ServicePath:   "Builtin",
 		ServiceMethod: "Heartbeat",
 		Metadata: map[string]string{
-			"abc":  "123",
-			"name": "joker",
+			"abc":         "123",
+			"name":        "joker",
+			share.AuthKey: "鸳鸯擦，鸳鸯体，你爱我，我爱你",
 		},
 		H: &protocol.Header{
-			MagicNumber:   0,
-			Version:       0,
+			MagicNumber:   protocol.MagicNumber,
+			Version:       protocol.Version,
 			HeartBeat:     0,
 			SerializeType: uint8(protocol.String),
 		},
@@ -54,6 +56,6 @@ func main() {
 		conn.Write(buffer.Bytes())
 		cx := <-client.CtxChan()
 		fmt.Println(cx.ServicePath, cx.Payload)
-		time.Sleep(time.Millisecond * 10)
+		time.Sleep(time.Millisecond * 99)
 	}
 }
