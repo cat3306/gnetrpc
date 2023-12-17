@@ -54,12 +54,6 @@ func Decode(c gnet.Conn) (*Context, error) {
 		return nil, ErrIncompletePacket
 	}
 	header := fixedBuffer[:headerLen]
-	h := Header{
-		MagicNumber:   header[0],
-		Version:       header[1],
-		HeartBeat:     header[2],
-		SerializeType: header[3],
-	}
 	msgSeq := packetEndian.Uint64(fixedBuffer[headerLen : headerLen+msgSeqLen])
 	pathMethodLength := packetEndian.Uint32(fixedBuffer[headerLen+msgSeqLen : headerLen+msgSeqLen+pathMethodLen])
 	metaDataLength := packetEndian.Uint32(fixedBuffer[headerLen+msgSeqLen+pathMethodLen : headerLen+msgSeqLen+pathMethodLen+metaDataLen])
@@ -97,14 +91,22 @@ func Decode(c gnet.Conn) (*Context, error) {
 	method := pathAndMethod[1]
 	buffer := bytebufferpool.Get()
 	_, _ = buffer.Write(payload)
-	ctx := &Context{
-		H:             &h,
-		ServiceMethod: method,
-		ServicePath:   path,
-		Payload:       buffer,
-		Conn:          c,
-		MsgSeq:        msgSeq,
-	}
+	ctx := GetCtx()
+	//h := Header{
+	//	MagicNumber:   header[0],
+	//	Version:       header[1],
+	//	HeartBeat:     header[2],
+	//	SerializeType: header[3],
+	//}
+	ctx.H.MagicNumber = header[0]
+	ctx.H.Version = header[1]
+	ctx.H.HeartBeat = header[2]
+	ctx.H.SerializeType = header[3]
+	ctx.ServiceMethod = method
+	ctx.ServicePath = path
+	ctx.Payload = buffer
+	ctx.Conn = c
+	ctx.MsgSeq = msgSeq
 	codec := GetCodec(Json)
 	if len(metaData) != 0 {
 		err = codec.Unmarshal(metaData, &ctx.Metadata)

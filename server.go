@@ -10,6 +10,7 @@ import (
 	"github.com/panjf2000/ants/v2"
 	"github.com/panjf2000/gnet/v2"
 	"github.com/panjf2000/gnet/v2/pkg/pool/goroutine"
+	"github.com/valyala/bytebufferpool"
 	"runtime/debug"
 	"sync"
 	"time"
@@ -89,7 +90,6 @@ func (s *Server) OnOpen(c gnet.Conn) (out []byte, action gnet.Action) {
 	for _, v := range plugins {
 		ok := v.OnDo(c).(bool)
 		if !ok {
-			rpclog.Info("asdasdsad")
 			c.Close()
 			return
 		}
@@ -136,7 +136,7 @@ func (s *Server) Register(v IService, name ...string) {
 	s.registerRouter(v, name...)
 }
 
-// registerRouter func(ctx *protocol.Context) or func(ctx *protocol.Context, tag struct{}) should by registered
+// registerRouter func(ctx *protocol.Context) or func(ctx *protocol.Context, tag struct{}) should be registered
 func (s *Server) registerRouter(v IService, name ...string) {
 	s.handlerSet.Register(v, s.option.printMethod, name...)
 }
@@ -147,6 +147,7 @@ func (s *Server) OnTick() (delay time.Duration, action gnet.Action) {
 
 func (s *Server) Run(netWork string, addr string) error {
 	go s.MainGoroutine()
+	rpclog.Infof("gnetrpc start %s server on %s", netWork, addr)
 	return gnet.Run(s, netWork+"://"+addr, gnet.WithOptions(s.option.gnetOptions))
 }
 func (s *Server) AddPlugin(ps ...Plugin) {
@@ -154,11 +155,34 @@ func (s *Server) AddPlugin(ps ...Plugin) {
 		s.pluginContainer.Add(p.Type(), p)
 	}
 }
+func (s *Server) SendMessage(conn gnet.Conn, path, method string, metadata map[string]string, body []byte) {
+	buffer := protocol.Encode(&protocol.Context{
+		H: &protocol.Header{
+			MagicNumber:   protocol.MagicNumber,
+			Version:       protocol.Version,
+			HeartBeat:     0,
+			SerializeType: byte(protocol.CodeNone),
+		},
+		Payload:       nil,
+		Conn:          conn,
+		ServicePath:   path,
+		ServiceMethod: method,
+		Metadata:      metadata,
+		MsgSeq:        0,
+		Ctx:           nil,
+	}, body)
+	defer func() {
+		bytebufferpool.Put(buffer)
+	}()
+	_, err := conn.Write(buffer.Bytes())
+	if err != nil {
+		rpclog.Errorf("SendMessage err:%s", err.Error())
+	}
+}
 func NewServer(options ...OptionFn) *Server {
 	s := &Server{
-		serviceSet: NewServiceSet(),
-		handlerSet: NewHandlerSet(),
-		//router:     make(map[string]Handler),
+		serviceSet:  NewServiceSet(),
+		handlerSet:  NewHandlerSet(),
 		gPool:       goroutine.Default(),
 		mainCtxChan: make(chan *protocol.Context, 1024),
 		connMatrix:  newConnMatrix(),

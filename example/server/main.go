@@ -62,7 +62,7 @@ func main() {
 	})
 	s.AddPlugin(
 		new(plugin.ConnectPlugin),
-		new(plugin.BlacklistPlugin).Add("127.0.0.1"),
+		//new(plugin.BlacklistPlugin).Add("127.0.0.1"),
 	)
 	s.Register(new(Arith))
 	err := s.Run(gnetrpc.TcpNetwork, ":7898")

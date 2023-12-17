@@ -1,6 +1,8 @@
 package gnetrpc
 
 import (
+	"errors"
+	"fmt"
 	"github.com/cat3306/gnetrpc/protocol"
 	"github.com/cat3306/gnetrpc/rpclog"
 	"time"
@@ -25,8 +27,10 @@ func (b *BuiltinService) Heartbeat(ctx *protocol.Context, args *string, reply *s
 		now := time.Now().UnixMilli()
 		milli := last.(int64)
 		if now-milli < maxHeartbeatFrequency.Milliseconds() {
-			rpclog.Errorf("the heart interval should be greater than %dms closed it", maxHeartbeatFrequency/time.Millisecond)
+			msg := fmt.Sprintf("the heart interval should be greater than %dms closed it", maxHeartbeatFrequency/time.Millisecond)
+			rpclog.Errorf(msg)
 			ctx.Conn.Close()
+			return nil, errors.New(msg)
 		}
 	}
 	ctx.Conn.SetProperty(lastHeartbeatKey, time.Now().UnixMilli())
