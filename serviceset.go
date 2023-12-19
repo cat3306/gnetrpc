@@ -5,19 +5,18 @@ import (
 	"fmt"
 	"github.com/cat3306/gnetrpc/protocol"
 	"github.com/cat3306/gnetrpc/rpclog"
-	"github.com/valyala/bytebufferpool"
 	"reflect"
-	"sync"
 )
 
 type ServiceSet struct {
-	set map[string]*Service
-	mu  sync.RWMutex
+	set    map[string]*Service
+	server *Server
 }
 
-func NewServiceSet() *ServiceSet {
+func NewServiceSet(server *Server) *ServiceSet {
 	return &ServiceSet{
-		set: map[string]*Service{},
+		set:    map[string]*Service{},
+		server: server,
 	}
 }
 func (s *ServiceSet) GetService(sp string) (bool, *Service) {
@@ -91,8 +90,6 @@ func (s *ServiceSet) suitableMethods(typ reflect.Type, reportErr bool) (map[stri
 	return methods, asyncMethods
 }
 func (s *ServiceSet) Register(v IService, isPrint bool, name ...string) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
 	value := reflect.ValueOf(v)
 	typ := reflect.TypeOf(v)
 	sName := ""
@@ -124,7 +121,10 @@ func (s *ServiceSet) Register(v IService, isPrint bool, name ...string) {
 	}
 	s.set[tmpService.name] = tmpService
 }
-func (s *ServiceSet) Call(ctx *protocol.Context, server *Server) error {
+func (s *ServiceSet) Call(ctx *protocol.Context) error {
+	defer func() {
+		protocol.PutCtx(ctx)
+	}()
 	servicePath := ctx.ServicePath
 	method := ctx.ServiceMethod
 	tmpService := s.set[servicePath]
@@ -168,16 +168,24 @@ func (s *ServiceSet) Call(ctx *protocol.Context, server *Server) error {
 			return nil
 		case Self:
 			buffer := protocol.Encode(ctx, replyv)
-			_, err = ctx.Conn.Write(buffer.Bytes())
-			bytebufferpool.Put(buffer)
+			s.server.connMatrix.SendToOne(buffer, ctx.Conn.Id())
 			return nil
+		case Broadcast:
+			buffer := protocol.Encode(ctx, replyv)
+			s.server.connMatrix.Broadcast(buffer)
+		case BroadcastExceptSelf:
+			buffer := protocol.Encode(ctx, replyv)
+			s.server.connMatrix.BroadcastExceptOne(buffer, ctx.Conn.Id())
+		case BroadcastSomeone:
+			buffer := protocol.Encode(ctx, replyv)
+			s.server.connMatrix.BroadcastSomeone(buffer, callModel.Ids)
 		}
 
 		//rpclog.Infof("args %s", string(data))
 		return nil
 	}
 	if isAsync {
-		err := server.gPool.Submit(func() {
+		err := s.server.gPool.Submit(func() {
 			err := f()
 			if err != nil {
 				rpclog.Errorf("call async err:%s", err.Error())

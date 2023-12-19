@@ -38,9 +38,10 @@ func (c *Client) MainGoroutine() {
 
 }
 func (c *Client) process(ctx *protocol.Context) {
-
+	rpclog.Info(ctx.Payload.Bytes())
 }
 func (c *Client) Run() {
+	go c.MainGoroutine()
 	_ = c.gCli.Start()
 }
 func (c *Client) Dial(network, address string) (gnet.Conn, error) {

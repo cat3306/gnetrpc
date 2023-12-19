@@ -14,6 +14,6 @@ func (c *ConnectPlugin) Type() gnetrpc.PluginType {
 }
 func (c *ConnectPlugin) OnDo(args interface{}) interface{} {
 	conn := args.(gnet.Conn)
-	rpclog.Infof("client connect cid:%d", conn.Fd())
+	rpclog.Infof("client connect cid:%s", conn.Id())
 	return true
 }

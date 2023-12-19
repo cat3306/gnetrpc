@@ -31,7 +31,7 @@ type Server struct {
 	option          *serverOption
 	gPool           *ants.Pool
 	mainCtxChan     chan *protocol.Context
-	connMatrix      *connMatrix
+	connMatrix      *ConnMatrix
 	authFunc        func(ctx *protocol.Context, token string) error
 	hotHandlerNum   int32
 	pluginContainer *pluginContainer
@@ -68,7 +68,7 @@ func (s *Server) process(ctx *protocol.Context) {
 		return
 	}
 
-	err = s.serviceSet.Call(ctx, s)
+	err = s.serviceSet.Call(ctx)
 	if err != nil {
 		rpclog.Errorf("process err:%s,service:%s, method:%s", err.Error(), servicePath, method)
 	}
@@ -98,12 +98,12 @@ func (s *Server) OnOpen(c gnet.Conn) (out []byte, action gnet.Action) {
 }
 
 func (s *Server) OnClose(c gnet.Conn, err error) (action gnet.Action) {
-	s.connMatrix.Remove(c.Fd())
+	s.connMatrix.Remove(c.Id())
 	reason := ""
 	if err != nil {
 		reason = err.Error()
 	}
-	rpclog.Infof("cid:%d close,reason:%s", c.Fd(), reason)
+	rpclog.Infof("cid:%s close,reason:%s", c.Id(), reason)
 	s.pluginContainer.DoDo(PluginTypeOnClose, nil)
 	return
 }
@@ -181,17 +181,16 @@ func (s *Server) SendMessage(conn gnet.Conn, path, method string, metadata map[s
 }
 func NewServer(options ...OptionFn) *Server {
 	s := &Server{
-		serviceSet:  NewServiceSet(),
 		handlerSet:  NewHandlerSet(),
 		gPool:       goroutine.Default(),
 		mainCtxChan: make(chan *protocol.Context, 1024),
-		connMatrix:  newConnMatrix(),
+		connMatrix:  NewConnMatrix(),
 		option:      new(serverOption),
 		pluginContainer: &pluginContainer{
 			plugins: map[PluginType][]Plugin{},
 		},
 	}
-
+	s.serviceSet = NewServiceSet(s)
 	for _, op := range options {
 		op(s.option)
 	}

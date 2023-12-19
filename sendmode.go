@@ -7,11 +7,12 @@ const (
 	Self
 	Broadcast
 	BroadcastExceptSelf
+	BroadcastSomeone
 )
 
 type CallMode struct {
 	Call CallType
-	FDs  []int
+	Ids  []string
 }
 
 func CallNone() *CallMode {

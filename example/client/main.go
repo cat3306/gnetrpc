@@ -54,8 +54,6 @@ func main() {
 	buffer := protocol.Encode(&ctx, "💓")
 	for {
 		conn.Write(buffer.Bytes())
-		cx := <-client.CtxChan()
-		fmt.Println(cx.ServicePath, cx.Payload)
-		time.Sleep(time.Millisecond * 99)
+		time.Sleep(time.Millisecond * 1000)
 	}
 }

@@ -3,6 +3,7 @@ module github.com/cat3306/gnetrpc
 go 1.20
 
 require (
+	github.com/lithammer/shortuuid/v4 v4.0.0
 	github.com/panjf2000/ants/v2 v2.8.2
 	github.com/panjf2000/gnet/v2 v2.3.3
 	github.com/valyala/bytebufferpool v1.0.0
@@ -11,6 +12,7 @@ require (
 )
 
 require (
+	github.com/google/uuid v1.3.0 // indirect
 	go.uber.org/atomic v1.7.0 // indirect
 	go.uber.org/multierr v1.6.0 // indirect
 	golang.org/x/sync v0.3.0 // indirect
@@ -18,4 +20,4 @@ require (
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1 // indirect
 )
 
-replace github.com/panjf2000/gnet/v2 => github.com/cat3306/gnet/v2 v2.3.4-0.20231023053646-c27cf61bd32c
+replace github.com/panjf2000/gnet/v2 => github.com/cat3306/gnet/v2 v2.3.4-0.20231219075524-0ae7b9affa61
