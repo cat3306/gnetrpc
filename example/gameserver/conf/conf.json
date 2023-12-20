@@ -1,0 +1,26 @@
+{
+  "name": "gameserver",
+  "host": "0.0.0.0",
+  "port": 7898,
+  "max_conn": 1000,
+  "conn_write_buffer": 1024,
+  "conn_read_buffer": 1024,
+  "kv": {
+    "mysql": {
+      "host": "0.0.0.0",
+      "port": 3306,
+      "user": "root",
+      "pwd": "12345678",
+      "conn_pool_size": 20,
+      "set_log": true
+    },
+    "redis": {
+      "dbs": [
+        0,
+        1
+      ],
+      "addr": "0.0.0.0:6379",
+      "password": "redis-hahah@123"
+    }
+  }
+}

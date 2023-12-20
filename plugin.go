@@ -39,4 +39,5 @@ func (p *pluginContainer) Add(t PluginType, plugin Plugin) {
 type Plugin interface {
 	OnDo(v ...interface{}) interface{}
 	Type() PluginType
+	Init(v ...interface{}) Plugin
 }

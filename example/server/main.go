@@ -64,7 +64,7 @@ func main() {
 	s.AddPlugin(
 		new(plugin.ConnectPlugin),
 		new(plugin.ClosePlugin),
-		//new(plugin.BlacklistPlugin).Add("127.0.0.1"),
+		new(plugin.BlacklistPlugin).Add("211.137.99.189"),
 	)
 	s.Register(new(Arith))
 	err := s.Run(gnetrpc.TcpNetwork, ":7898")

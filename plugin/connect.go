@@ -9,6 +9,9 @@ import (
 type ConnectPlugin struct {
 }
 
+func (c *ConnectPlugin) Init(args ...interface{}) gnetrpc.Plugin {
+	return c
+}
 func (c *ConnectPlugin) Type() gnetrpc.PluginType {
 	return gnetrpc.PluginTypeOnOpen
 }

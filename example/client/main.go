@@ -38,6 +38,6 @@ func HeartBeat(client *gnetrpc.Client) {
 		if err != nil {
 			break
 		}
-		time.Sleep(time.Millisecond * 500)
+		time.Sleep(time.Millisecond * 10)
 	}
 }
