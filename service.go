@@ -42,7 +42,7 @@ func isExportedOrBuiltinType(t reflect.Type) bool {
 	return util.IsExported(t.Name()) || t.PkgPath() == ""
 }
 
-func (s *Service) call(ctx *protocol.Context, mtype *methodType, argv, replyv reflect.Value, isAsync bool) (*CallMode, error) {
+func (s *Service) call(ctx *protocol.Context, mtype *methodType, argv, replyv reflect.Value, isAsync bool) *CallMode {
 
 	function := mtype.method.Func
 	// Invoke the method, providing a new value for the reply.
@@ -54,16 +54,11 @@ func (s *Service) call(ctx *protocol.Context, mtype *methodType, argv, replyv re
 	}
 	// The return value for the method is an error.
 	callModeInter := returnValues[0].Interface()
-	errInter := returnValues[1].Interface()
 	var (
-		err      error
 		callMode *CallMode
 	)
-	if errInter != nil {
-		err = errInter.(error)
-	}
 	if callModeInter != nil {
 		callMode = callModeInter.(*CallMode)
 	}
-	return callMode, err
+	return callMode
 }

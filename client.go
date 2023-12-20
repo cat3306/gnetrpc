@@ -59,7 +59,7 @@ func (c *Client) MainGoroutine() {
 func (c *Client) process(ctx *protocol.Context) {
 	err := c.handlerSet.ExecuteHandler(ctx, goroutine.Default())
 	if err != nil {
-		rpclog.Errorf("process err:%s,path:%s,method:%s", err.Error(), ctx.ServicePath, ctx.ServicePath)
+		rpclog.Errorf("process err:%s,path:%s,method:%s", err.Error(), ctx.ServicePath, ctx.ServiceMethod)
 	}
 }
 func (c *Client) Run() (*Client, error) {
@@ -113,8 +113,10 @@ func (c *Client) OnTraffic(conn gnet.Conn) (action gnet.Action) {
 func (c *Client) OnTick() (delay time.Duration, action gnet.Action) {
 	return
 }
-func (c *Client) Register(v IService) *Client {
-	c.handlerSet.Register(v, true)
+func (c *Client) Register(is ...IService) *Client {
+	for _, v := range is {
+		c.handlerSet.Register(v, true)
+	}
 	return c
 }
 

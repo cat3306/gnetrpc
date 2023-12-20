@@ -121,9 +121,9 @@ func Decode(c gnet.Conn) (*Context, error) {
 	return ctx, nil
 }
 func Encode(ctx *Context, v interface{}) *bytebufferpool.ByteBuffer {
-	if v == nil {
-		panic("v nil")
-	}
+	//if v == nil {
+	//	panic("v nil")
+	//}
 	if ctx.H == nil {
 		panic("encode header nil")
 	}
@@ -140,12 +140,14 @@ func Encode(ctx *Context, v interface{}) *bytebufferpool.ByteBuffer {
 	if err != nil {
 		panic(err)
 	}
-	if tmp, ok := v.([]byte); ok {
-		payload = tmp
-	} else {
-		payload, err = codec.Marshal(v)
-		if err != nil {
-			panic(err)
+	if v != nil {
+		if tmp, ok := v.([]byte); ok {
+			payload = tmp
+		} else {
+			payload, err = codec.Marshal(v)
+			if err != nil {
+				panic(err)
+			}
 		}
 	}
 	buffer := bytebufferpool.Get()

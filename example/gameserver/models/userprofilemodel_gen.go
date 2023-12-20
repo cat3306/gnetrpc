@@ -7,7 +7,7 @@ import (
 )
 
 const (
-	UserProfileTName = "user_profile"
+	UserProfileTName = "user.user_profile"
 )
 
 type (

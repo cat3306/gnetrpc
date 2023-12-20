@@ -8,19 +8,15 @@ const (
 type ApiRsp struct {
 	Code int         `json:"code"`
 	Msg  string      `json:"msg"`
-	Data interface{} `json:"data",o`
+	Data interface{} `json:"data,omitempty"`
 }
 
-func RspOk(data interface{}) *ApiRsp {
-	return &ApiRsp{
-		Code: OkCode,
-		Msg:  "",
-		Data: data,
-	}
+func (a *ApiRsp) Err(msg string) {
+	a.Msg = msg
+	a.Code = ErrCode
 }
-func RspErr(msg string) *ApiRsp {
-	return &ApiRsp{
-		Code: ErrCode,
-		Msg:  msg,
-	}
+
+func (a *ApiRsp) Ok(data interface{}) {
+	a.Data = data
+	a.Code = OkCode
 }

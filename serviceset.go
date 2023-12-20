@@ -66,15 +66,11 @@ func (s *ServiceSet) suitableMethods(typ reflect.Type, reportErr bool) (map[stri
 		}
 
 		// Method needs one out.
-		if mtype.NumOut() != 2 {
+		if mtype.NumOut() != 1 {
 			continue
 		}
 		// The return type of the method must be error.
 		if returnType := mtype.Out(0); returnType != typeOfCallMode {
-			continue
-		}
-		if returnType := mtype.Out(1); returnType != typeOfError {
-
 			continue
 		}
 		if mtype.NumIn() == 4 {
@@ -122,9 +118,7 @@ func (s *ServiceSet) Register(v IService, isPrint bool, name ...string) {
 	s.set[tmpService.name] = tmpService
 }
 func (s *ServiceSet) Call(ctx *protocol.Context) error {
-	defer func() {
-		protocol.PutCtx(ctx)
-	}()
+
 	servicePath := ctx.ServicePath
 	method := ctx.ServiceMethod
 	tmpService := s.set[servicePath]
@@ -145,24 +139,26 @@ func (s *ServiceSet) Call(ctx *protocol.Context) error {
 		return errors.New("invalid serialize type")
 	}
 	f := func() error {
+		defer func() {
+			protocol.PutCtx(ctx)
+		}()
 		replyv := reflectTypePools.Get(mType.ReplyType)
 		argv := reflectTypePools.Get(mType.ArgType)
 		defer func() {
 			reflectTypePools.Put(mType.ArgType, argv)
 			reflectTypePools.Put(mType.ReplyType, replyv)
 		}()
-		err := codec.Unmarshal(ctx.Payload.Bytes(), argv)
-		if err != nil {
-			return err
+		//maybe ctx.Payload nil
+		if ctx.Payload.Len() != 0 {
+			err := codec.Unmarshal(ctx.Payload.Bytes(), argv)
+			if err != nil {
+				return err
+			}
 		}
-		callModel, err := tmpService.call(ctx, mType, reflect.ValueOf(argv), reflect.ValueOf(replyv), isAsync)
-		if err != nil {
-			return err
-		}
+		callModel := tmpService.call(ctx, mType, reflect.ValueOf(argv), reflect.ValueOf(replyv), isAsync)
 		if callModel == nil {
-			return errors.New("call mode nil")
+			return nil
 		}
-
 		switch callModel.Call {
 		case None:
 			return nil

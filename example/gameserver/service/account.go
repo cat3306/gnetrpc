@@ -51,7 +51,19 @@ type LoginRsp struct {
 	Nick   string `json:"Nick"`
 }
 
-func (a *Account) Login(ctx *protocol.Context, req *LoginReq, rsp *ApiRsp) (*gnetrpc.CallMode, error) {
+func (a *Account) Login(ctx *protocol.Context, req *LoginReq, rsp *ApiRsp, tag struct{}) *gnetrpc.CallMode {
+	data, err := a.login(req)
+	if err != nil {
+		rpclog.Errorf(err.Error())
+		rsp.Err(err.Error())
+	} else {
+		ctx.Conn.SetProperty("user_id", data.UserId)
+		rsp.Ok(data)
+	}
+	return gnetrpc.CallSelf()
+}
+
+func (a *Account) login(req *LoginReq) (*LoginRsp, error) {
 	if req.Email == "" || req.Pwd == "" {
 		return nil, errors.New("invalid args")
 	}
@@ -72,14 +84,13 @@ func (a *Account) Login(ctx *protocol.Context, req *LoginReq, rsp *ApiRsp) (*gne
 		return nil, err
 	}
 	if okInt == 1 {
-		rpclog.Errorf("already login ")
 		return nil, errors.New("已登录")
 	}
 	//	ctx.DelUserId()
-	rsp = RspOk(&LoginRsp{
+	rsp := &LoginRsp{
 		UserId: userProfile.UserId,
 		Nick:   userProfile.Nick,
-	})
+	}
 	data := map[string]string{
 		"email": userProfile.Email,
 		"nick":  userProfile.Nick,
@@ -87,21 +98,27 @@ func (a *Account) Login(ctx *protocol.Context, req *LoginReq, rsp *ApiRsp) (*gne
 	info, _ := json.Marshal(data)
 	err = thirdmodule.CacheSelect(0).Set(context.Background(), userProfile.UserId, string(info), -1).Err()
 	if err != nil {
-		rpclog.Errorf("Cache.Set err:%s,req:%+v", err.Error(), req)
 		return nil, err
 	}
-	return gnetrpc.CallSelf(), nil
+	return rsp, nil
+}
+func (a *Account) Logout(ctx *protocol.Context, req *struct{}, rsp *ApiRsp, tag struct{}) *gnetrpc.CallMode {
+	uv, _ := ctx.Conn.GetProperty("user_id")
+	userId := uv.(string)
+	err := a.logout(userId)
+	if err != nil {
+		rpclog.Errorf(err.Error())
+		rsp.Err(err.Error())
+	} else {
+		rsp.Ok(nil)
+	}
+	return gnetrpc.CallSelf()
+}
+func (a *Account) logout(userId string) error {
+
+	return thirdmodule.CacheSelect(0).Del(context.Background(), userId).Err()
 }
 
-func (a *Account) Logout(ctx *protocol.Context) {
-	////err := thirdmodule.Cache.Del(ctx.GetUserId()).Err()
-	////if err != nil {
-	////	rpclog.Errorf("Cache.Del err:%s", err.Error())
-	////	ctx.SendWithCodeType(gnet.JsonRspErr("注销错误"), gface.Json)
-	////}
-	////ctx.DelUserId()
-	//ctx.Send("OK")
-}
 func (a *Account) Register(ctx *protocol.Context, tag struct{}) {
 	//type Req struct {
 	//	Email string `json:"Email"`
