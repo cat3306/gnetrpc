@@ -15,7 +15,7 @@ const (
 type Header struct {
 	MagicNumber   byte
 	Version       byte
-	HeartBeat     byte
+	HeartBeat     byte //reserved field
 	SerializeType byte
 }
 

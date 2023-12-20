@@ -53,6 +53,7 @@ func main() {
 		gnetrpc.WithMulticore(true),
 		gnetrpc.WithPrintRegisteredMethod(),
 		gnetrpc.WithDefaultService(),
+		gnetrpc.WithMainGoroutineChannelCap(10000),
 	)
 	s.UseAuthFunc(func(ctx *protocol.Context, token string) error {
 		if token != "鸳鸯擦，鸳鸯体，你爱我，我爱你" {
@@ -62,6 +63,7 @@ func main() {
 	})
 	s.AddPlugin(
 		new(plugin.ConnectPlugin),
+		new(plugin.ClosePlugin),
 		//new(plugin.BlacklistPlugin).Add("127.0.0.1"),
 	)
 	s.Register(new(Arith))

@@ -28,8 +28,7 @@ func (b *BuiltinService) Heartbeat(ctx *protocol.Context, args *string, reply *s
 		milli := last.(int64)
 		if now-milli < maxHeartbeatFrequency.Milliseconds() {
 			msg := fmt.Sprintf("the heart interval should be greater than %dms closed it", maxHeartbeatFrequency/time.Millisecond)
-			rpclog.Errorf(msg)
-			ctx.Conn.Close()
+			ctx.Conn.Close("heart interval")
 			return nil, errors.New(msg)
 		}
 	}

@@ -8,7 +8,6 @@ import (
 	"github.com/panjf2000/ants/v2"
 	"reflect"
 	"runtime/debug"
-	"sync"
 )
 
 type Handler func(ctx *protocol.Context)
@@ -16,7 +15,6 @@ type AsyncHandler func(ctx *protocol.Context, tag struct{})
 type HandlerSet struct {
 	set      map[string]Handler
 	asyncSet map[string]AsyncHandler
-	mu       sync.RWMutex
 }
 
 func NewHandlerSet() *HandlerSet {
@@ -50,8 +48,6 @@ func (h *HandlerSet) ExecuteHandler(ctx *protocol.Context, gPool *ants.Pool) err
 	return err
 }
 func (h *HandlerSet) Register(v IService, isPrint bool, name ...string) {
-	h.mu.Lock()
-	defer h.mu.Unlock()
 	value := reflect.ValueOf(v)
 	typ := reflect.TypeOf(v)
 	sName := ""

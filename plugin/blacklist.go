@@ -25,8 +25,8 @@ func (b *BlacklistPlugin) Type() gnetrpc.PluginType {
 	return gnetrpc.PluginTypeOnOpen
 }
 
-func (b *BlacklistPlugin) OnDo(args interface{}) interface{} {
-	conn := args.(gnet.Conn)
+func (b *BlacklistPlugin) OnDo(args ...interface{}) interface{} {
+	conn := args[0].(gnet.Conn)
 	ip, _, err := net.SplitHostPort(conn.RemoteAddr().String())
 	if err != nil {
 		return true

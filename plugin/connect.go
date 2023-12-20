@@ -12,8 +12,8 @@ type ConnectPlugin struct {
 func (c *ConnectPlugin) Type() gnetrpc.PluginType {
 	return gnetrpc.PluginTypeOnOpen
 }
-func (c *ConnectPlugin) OnDo(args interface{}) interface{} {
-	conn := args.(gnet.Conn)
-	rpclog.Infof("client connect cid:%s", conn.Id())
+func (c *ConnectPlugin) OnDo(args ...interface{}) interface{} {
+	conn := args[0].(gnet.Conn)
+	rpclog.Infof("client connect id:%s,address:%s", conn.Id(), conn.RemoteAddr().String())
 	return true
 }

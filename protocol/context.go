@@ -35,7 +35,7 @@ type Context struct {
 	ServiceMethod string
 	Metadata      map[string]string
 	//SerializeType uint8
-	MsgSeq uint64
+	MsgSeq uint64 //reserved field
 	Ctx    context.Context
 }
 

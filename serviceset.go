@@ -168,7 +168,7 @@ func (s *ServiceSet) Call(ctx *protocol.Context) error {
 			return nil
 		case Self:
 			buffer := protocol.Encode(ctx, replyv)
-			s.server.connMatrix.SendToOne(buffer, ctx.Conn.Id())
+			s.server.connMatrix.SendToConn(buffer, ctx.Conn)
 			return nil
 		case Broadcast:
 			buffer := protocol.Encode(ctx, replyv)

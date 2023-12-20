@@ -23,7 +23,16 @@ func WithMulticore(multicore bool) OptionFn {
 		s.gnetOptions.Multicore = multicore
 	}
 }
-
+func WithMainGoroutineChannelCap(cap int) OptionFn {
+	return func(s *serverOption) {
+		s.mainGoroutineChannelCap = cap
+	}
+}
+func WithClientAsyncMode() OptionFn {
+	return func(s *serverOption) {
+		s.clientAsyncMode = true
+	}
+}
 func WithLockOSThread(lockOSThread bool) OptionFn {
 	return func(s *serverOption) {
 		s.gnetOptions.LockOSThread = lockOSThread

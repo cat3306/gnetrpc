@@ -15,12 +15,12 @@ type pluginContainer struct {
 	plugins map[PluginType][]Plugin
 }
 
-func (p *pluginContainer) DoDo(t PluginType, v interface{}) []interface{} {
+func (p *pluginContainer) DoDo(t PluginType, v ...interface{}) []interface{} {
 
 	list := p.plugins[t]
 	rsp := make([]interface{}, 0, len(list))
 	for _, plugin := range list {
-		rsp = append(rsp, plugin.OnDo(v))
+		rsp = append(rsp, plugin.OnDo(v...))
 	}
 	return rsp
 }
@@ -37,6 +37,6 @@ func (p *pluginContainer) Add(t PluginType, plugin Plugin) {
 }
 
 type Plugin interface {
-	OnDo(v interface{}) interface{}
+	OnDo(v ...interface{}) interface{}
 	Type() PluginType
 }

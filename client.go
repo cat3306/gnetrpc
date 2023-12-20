@@ -4,30 +4,49 @@ import (
 	"github.com/cat3306/gnetrpc/protocol"
 	"github.com/cat3306/gnetrpc/rpclog"
 	"github.com/panjf2000/gnet/v2"
+	"github.com/panjf2000/gnet/v2/pkg/pool/goroutine"
+	"github.com/valyala/bytebufferpool"
 	"time"
 )
 
-func NewClient(options ...OptionFn) (*Client, error) {
+func NewClient(address string, network string, options ...OptionFn) *Client {
+
 	c := &Client{
-		mainCtxChan: make(chan *protocol.Context, 1024),
-		option:      new(serverOption),
+		option: new(serverOption),
+		pluginContainer: &pluginContainer{
+			plugins: map[PluginType][]Plugin{},
+		},
+		address:    address,
+		network:    network,
+		handlerSet: NewHandlerSet(),
 	}
 	for _, op := range options {
 		op(c.option)
 	}
+	if c.option.mainGoroutineChannelCap == 0 {
+		c.option.mainGoroutineChannelCap = 1024
+	}
+	c.asyncMode = c.option.clientAsyncMode
+	c.mainCtxChan = make(chan *protocol.Context, c.option.mainGoroutineChannelCap)
 	cli, err := gnet.NewClient(c, gnet.WithOptions(c.option.gnetOptions))
 	if err != nil {
-		return nil, err
+		panic(err)
 	}
 	c.gCli = cli
-	return c, nil
+	return c
 }
 
 type Client struct {
 	option *serverOption
 	*gnet.BuiltinEventEngine
-	gCli        *gnet.Client
-	mainCtxChan chan *protocol.Context
+	gCli            *gnet.Client
+	mainCtxChan     chan *protocol.Context
+	pluginContainer *pluginContainer
+	handlerSet      *HandlerSet
+	address         string
+	network         string
+	asyncMode       bool
+	conn            gnet.Conn
 }
 
 func (c *Client) MainGoroutine() {
@@ -38,14 +57,29 @@ func (c *Client) MainGoroutine() {
 
 }
 func (c *Client) process(ctx *protocol.Context) {
-	rpclog.Info(ctx.Payload.Bytes())
+	err := c.handlerSet.ExecuteHandler(ctx, goroutine.Default())
+	if err != nil {
+		rpclog.Errorf("process err:%s,path:%s,method:%s", err.Error(), ctx.ServicePath, ctx.ServicePath)
+	}
 }
-func (c *Client) Run() {
-	go c.MainGoroutine()
+func (c *Client) Run() (*Client, error) {
+	_, err := c.dial()
+	if err != nil {
+		return nil, err
+	}
+	if c.asyncMode {
+		go c.MainGoroutine()
+	}
 	_ = c.gCli.Start()
+	return c, nil
 }
-func (c *Client) Dial(network, address string) (gnet.Conn, error) {
-	return c.gCli.Dial(network, address)
+func (c *Client) dial() (*Client, error) {
+	conn, err := c.gCli.Dial(c.network, c.address)
+	if err != nil {
+		return nil, err
+	}
+	c.conn = conn
+	return c, err
 }
 func (c *Client) OnBoot(e gnet.Engine) (action gnet.Action) {
 	return
@@ -73,10 +107,33 @@ func (c *Client) OnTraffic(conn gnet.Conn) (action gnet.Action) {
 	if err != nil {
 		return
 	}
-	//rpclog.Infof("%s,%s,%s", ctx.ServicePath, ctx.ServiceMethod, string(ctx.Payload.B))
 	c.mainCtxChan <- ctx
 	return gnet.None
 }
 func (c *Client) OnTick() (delay time.Duration, action gnet.Action) {
 	return
+}
+func (c *Client) Register(v IService) *Client {
+	c.handlerSet.Register(v, true)
+	return c
+}
+
+func (c *Client) Call(servicePath string, serviceMethod string, metadata map[string]string, sType protocol.SerializeType, v interface{}) error {
+	ctx := protocol.Context{
+		ServicePath:   servicePath,
+		ServiceMethod: serviceMethod,
+		Metadata:      metadata,
+		H: &protocol.Header{
+			MagicNumber:   protocol.MagicNumber,
+			Version:       protocol.Version,
+			SerializeType: uint8(sType),
+		},
+	}
+	buffer := protocol.Encode(&ctx, v)
+	defer bytebufferpool.Put(buffer)
+	_, err := c.conn.Write(buffer.Bytes())
+	if err != nil {
+		return err
+	}
+	return nil
 }

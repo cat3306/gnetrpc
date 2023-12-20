@@ -12,20 +12,20 @@ import (
 	"github.com/panjf2000/gnet/v2/pkg/pool/goroutine"
 	"github.com/valyala/bytebufferpool"
 	"runtime/debug"
-	"sync"
 	"time"
 )
 
 type serverOption struct {
-	printMethod    bool
-	defaultService bool
-	gnetOptions    gnet.Options
-	antOption      ants.Options
+	printMethod             bool
+	defaultService          bool
+	mainGoroutineChannelCap int
+	clientAsyncMode         bool //client
+	gnetOptions             gnet.Options
+	antOption               ants.Options
 }
 type Server struct {
 	gnet.BuiltinEventEngine
 	eng             gnet.Engine
-	serviceMapMu    sync.RWMutex
 	serviceSet      *ServiceSet
 	handlerSet      *HandlerSet
 	option          *serverOption
@@ -86,11 +86,10 @@ func (s *Server) OnShutdown(engine gnet.Engine) {
 func (s *Server) OnOpen(c gnet.Conn) (out []byte, action gnet.Action) {
 	s.connMatrix.Add(c)
 	plugins := s.pluginContainer.Plugins(PluginTypeOnOpen)
-	rpclog.Info(len(plugins))
 	for _, v := range plugins {
 		ok := v.OnDo(c).(bool)
 		if !ok {
-			c.Close()
+			c.Close("plugin check failed")
 			return
 		}
 	}
@@ -103,8 +102,7 @@ func (s *Server) OnClose(c gnet.Conn, err error) (action gnet.Action) {
 	if err != nil {
 		reason = err.Error()
 	}
-	rpclog.Infof("cid:%s close,reason:%s", c.Id(), reason)
-	s.pluginContainer.DoDo(PluginTypeOnClose, nil)
+	s.pluginContainer.DoDo(PluginTypeOnClose, c, reason)
 	return
 }
 
@@ -121,7 +119,7 @@ func (s *Server) OnTraffic(c gnet.Conn) (action gnet.Action) {
 		err = s.authFunc(ctx, token)
 		if err != nil {
 			rpclog.Errorf("auth failed for conn %s: %s", c.RemoteAddr().String(), err.Error())
-			err = c.Close()
+			err = c.Close("auth failed")
 			if err != nil {
 				rpclog.Errorf("conn close err:%s,%s", err.Error(), c.RemoteAddr().String())
 			}
@@ -181,11 +179,10 @@ func (s *Server) SendMessage(conn gnet.Conn, path, method string, metadata map[s
 }
 func NewServer(options ...OptionFn) *Server {
 	s := &Server{
-		handlerSet:  NewHandlerSet(),
-		gPool:       goroutine.Default(),
-		mainCtxChan: make(chan *protocol.Context, 1024),
-		connMatrix:  NewConnMatrix(),
-		option:      new(serverOption),
+		handlerSet: NewHandlerSet(),
+		gPool:      goroutine.Default(),
+		connMatrix: NewConnMatrix(),
+		option:     new(serverOption),
 		pluginContainer: &pluginContainer{
 			plugins: map[PluginType][]Plugin{},
 		},
@@ -194,7 +191,10 @@ func NewServer(options ...OptionFn) *Server {
 	for _, op := range options {
 		op(s.option)
 	}
-
+	if s.option.mainGoroutineChannelCap == 0 {
+		s.option.mainGoroutineChannelCap = 1024
+	}
+	s.mainCtxChan = make(chan *protocol.Context, s.option.mainGoroutineChannelCap)
 	if s.option.defaultService {
 		s.Register(new(BuiltinService), BuiltinServiceName)
 	}
