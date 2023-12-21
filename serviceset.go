@@ -85,14 +85,12 @@ func (s *ServiceSet) suitableMethods(typ reflect.Type, reportErr bool) (map[stri
 	}
 	return methods, asyncMethods
 }
-func (s *ServiceSet) Register(v IService, isPrint bool, name ...string) {
+func (s *ServiceSet) Register(v IService, isPrint bool) {
 	value := reflect.ValueOf(v)
 	typ := reflect.TypeOf(v)
-	sName := ""
-	if len(name) != 0 {
-		sName = name[0]
-	} else {
-		sName = reflect.Indirect(value).Type().Name()
+	sName := reflect.Indirect(value).Type().Name()
+	if v.Alias() != "" {
+		sName = v.Alias()
 	}
 	if sName == "" {
 		errorStr := "Register: no service name for type " + typ.String()
@@ -111,7 +109,7 @@ func (s *ServiceSet) Register(v IService, isPrint bool, name ...string) {
 			rpclog.Info(fmt.Sprintf("registered [%s.%s]", tmpService.name, m.method.Name))
 		}
 		for _, m := range tmpService.asyncMethod {
-			rpclog.Info(fmt.Sprintf("registered [%s.go_%s]", tmpService.name, m.method.Name))
+			rpclog.Info(fmt.Sprintf("registered [%s.go@%s]", tmpService.name, m.method.Name))
 		}
 
 	}

@@ -47,14 +47,12 @@ func (h *HandlerSet) ExecuteHandler(ctx *protocol.Context, gPool *ants.Pool) err
 	})
 	return err
 }
-func (h *HandlerSet) Register(v IService, isPrint bool, name ...string) {
+func (h *HandlerSet) Register(v IService, isPrint bool) {
 	value := reflect.ValueOf(v)
 	typ := reflect.TypeOf(v)
-	sName := ""
-	if len(name) != 0 {
-		sName = name[0]
-	} else {
-		sName = reflect.Indirect(value).Type().Name()
+	sName := reflect.Indirect(value).Type().Name()
+	if v.Alias() != "" {
+		sName = v.Alias()
 	}
 	if sName == "" {
 		errorStr := "Register: no service name for type " + typ.String()
@@ -78,7 +76,7 @@ func (h *HandlerSet) Register(v IService, isPrint bool, name ...string) {
 		if ok {
 			h.asyncSet[util.JoinServiceMethod(sName, mName)] = af
 			if isPrint {
-				rpclog.Info(fmt.Sprintf("registered [%s.go_%s]", sName, mName))
+				rpclog.Info(fmt.Sprintf("registered [%s.go@%s]", sName, mName))
 			}
 		}
 

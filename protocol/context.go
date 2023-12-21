@@ -2,6 +2,7 @@ package protocol
 
 import (
 	"context"
+	"github.com/panjf2000/ants/v2"
 	"github.com/panjf2000/gnet/v2"
 	"github.com/valyala/bytebufferpool"
 	"sync"
@@ -37,6 +38,7 @@ type Context struct {
 	//SerializeType uint8
 	MsgSeq uint64 //reserved field
 	Ctx    context.Context
+	GPool  *ants.Pool
 }
 
 func (c *Context) Reset() {
@@ -51,4 +53,5 @@ func (c *Context) Reset() {
 	c.Metadata = nil
 	c.MsgSeq = 0
 	c.Ctx = nil
+	c.GPool = nil
 }

@@ -1,6 +1,7 @@
 package thirdmodule
 
 import (
+	"errors"
 	"github.com/cat3306/gnetrpc/example/gameserver/conf"
 	"github.com/cat3306/gocommon/goredisutil"
 	"github.com/go-redis/redis/v8"
@@ -8,8 +9,15 @@ import (
 
 var (
 	RedisClients *goredisutil.RedisClientPool
+	NilErr       = redis.Nil
 )
 
+func IgnoreRedisNil(err error) error {
+	if errors.Is(err, redis.Nil) {
+		err = nil
+	}
+	return err
+}
 func InitCache() {
 	redisConf := &conf.RedisConfig{}
 	m := conf.ServerConfig.KV["redis"].(map[string]interface{})

@@ -126,17 +126,20 @@ func (s *Server) OnTraffic(c gnet.Conn) (action gnet.Action) {
 			return
 		}
 	}
+	ctx.GPool = s.gPool
 	s.mainCtxChan <- ctx
 	return
 }
-func (s *Server) Register(v IService, name ...string) {
-	s.serviceSet.Register(v, s.option.printMethod, name...)
-	s.registerRouter(v, name...)
+func (s *Server) Register(is ...IService) {
+	for _, v := range is {
+		s.serviceSet.Register(v, s.option.printMethod)
+		s.registerRouter(v)
+	}
 }
 
 // registerRouter func(ctx *protocol.Context) or func(ctx *protocol.Context, tag struct{}) should be registered
-func (s *Server) registerRouter(v IService, name ...string) {
-	s.handlerSet.Register(v, s.option.printMethod, name...)
+func (s *Server) registerRouter(v IService) {
+	s.handlerSet.Register(v, s.option.printMethod)
 }
 
 func (s *Server) OnTick() (delay time.Duration, action gnet.Action) {
@@ -196,7 +199,7 @@ func NewServer(options ...OptionFn) *Server {
 	}
 	s.mainCtxChan = make(chan *protocol.Context, s.option.mainGoroutineChannelCap)
 	if s.option.defaultService {
-		s.Register(new(BuiltinService), BuiltinServiceName)
+		s.Register(new(BuiltinService))
 	}
 	return s
 }

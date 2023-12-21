@@ -1,6 +1,6 @@
 github.com/benbjohnson/clock v1.1.0 h1:Q92kusRqC1XV2MjkWETPvjJVqKetz1OzxZB7mHJLju8=
-github.com/cat3306/gnet/v2 v2.3.4-0.20231219133356-c8a16922f414 h1:WGj9XgCnY5VwGpmzgQvB90VcAX6JkBR1TOQ0XdlvOj4=
-github.com/cat3306/gnet/v2 v2.3.4-0.20231219133356-c8a16922f414/go.mod h1:SNbgqxd7Umz+V9xhokLduzmkH+ZusfDQWABHnnoWcgk=
+github.com/cat3306/gnet/v2 v2.3.5 h1:ezZT2r/puUgytZI419jT3WPU/BdIANVNzTIVPW4UCz8=
+github.com/cat3306/gnet/v2 v2.3.5/go.mod h1:SNbgqxd7Umz+V9xhokLduzmkH+ZusfDQWABHnnoWcgk=
 github.com/cat3306/gocommon v0.0.0-20230914143826-c7ae75ca481f h1:70ewDoUpjYeXhbZME+AQeeSX6nI4vIjTvnZuNNOsZ40=
 github.com/cat3306/gocommon v0.0.0-20230914143826-c7ae75ca481f/go.mod h1:LV1r9aOFgUexOIg/7bB8szkQwlu5xLVYK2y+OKHoCck=
 github.com/cespare/xxhash/v2 v2.2.0 h1:DC2CZ1Ep5Y4k3ZQ899DldepgrayRUGE6BBZ/cd9Cj44=

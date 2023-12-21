@@ -19,6 +19,9 @@ type Builtin struct {
 func (b *Builtin) Init(v ...interface{}) gnetrpc.IService {
 	return b
 }
+func (b *Builtin) Alias() string {
+	return ""
+}
 func (b *Builtin) Heartbeat(ctx *protocol.Context) {
 	rpclog.Info(ctx.Payload.String())
 }
@@ -28,6 +31,9 @@ type Account struct {
 	secret string
 }
 
+func (a *Account) Alias() string {
+	return ""
+}
 func (a *Account) Init(v ...interface{}) gnetrpc.IService {
 	return a
 }
@@ -36,6 +42,12 @@ func (a *Account) Login(ctx *protocol.Context) {
 	rpclog.Info(ctx.Payload.String())
 }
 func (a *Account) Logout(ctx *protocol.Context) {
+	rpclog.Info(ctx.Payload.String())
+}
+func (a *Account) Register(ctx *protocol.Context) {
+	rpclog.Info(ctx.Payload.String())
+}
+func (a *Account) EmailCode(ctx *protocol.Context) {
 	rpclog.Info(ctx.Payload.String())
 }
 func main() {
@@ -47,8 +59,10 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	Login(client)
+	//Login(client)
 	//HeartBeat(client)
+	Register(client)
+	//EmailCode(client)
 }
 
 type LoginReq struct {
@@ -68,8 +82,44 @@ func Login(client *gnetrpc.Client) {
 	time.Sleep(time.Second * 10)
 	Logout(client)
 }
+
+type RegisterReq struct {
+	Email string `json:"Email"`
+	Pwd   string `json:"Pwd"`
+	Nick  string `json:"Nick"`
+	Code  string `json:"Code"`
+}
+
+func Register(client *gnetrpc.Client) {
+	req := RegisterReq{
+		Email: "2696584197@qq.com",
+		Pwd:   "123",
+		Nick:  "cat101",
+		Code:  "091533",
+	}
+	err := client.Call("Account", "Register", nil, protocol.Json, req)
+	if err != nil {
+		fmt.Println(err)
+	}
+	time.Sleep(time.Second * 10)
+}
 func Logout(client *gnetrpc.Client) {
 	err := client.Call("Account", "Logout", nil, protocol.CodeNone, nil)
+	if err != nil {
+		fmt.Println(err)
+	}
+	time.Sleep(time.Second * 10)
+}
+
+type EmailCodeReq struct {
+	Email string `json:"email"`
+}
+
+func EmailCode(client *gnetrpc.Client) {
+	req := EmailCodeReq{
+		Email: "2696584197@qq.com",
+	}
+	err := client.Call("Account", "EmailCode", nil, protocol.Json, req)
 	if err != nil {
 		fmt.Println(err)
 	}

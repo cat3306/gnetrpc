@@ -3,7 +3,7 @@ module github.com/cat3306/gnetrpc/example/gameserver
 go 1.20
 
 require (
-	github.com/cat3306/gnetrpc v0.0.0-20231220070334-34823841186c
+	github.com/cat3306/gnetrpc v0.0.0-00010101000000-000000000000
 	github.com/cat3306/gocommon v0.0.0-20230914143826-c7ae75ca481f
 	github.com/go-redis/redis/v8 v8.11.5
 	gorm.io/driver/mysql v1.5.2
@@ -24,7 +24,7 @@ require (
 	github.com/kr/text v0.2.0 // indirect
 	github.com/lithammer/shortuuid/v4 v4.0.0 // indirect
 	github.com/panjf2000/ants/v2 v2.8.2 // indirect
-	github.com/panjf2000/gnet/v2 v2.3.3 // indirect
+	github.com/panjf2000/gnet/v2 v2.3.5 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	go.etcd.io/etcd/api/v3 v3.5.9 // indirect
 	go.etcd.io/etcd/client/pkg/v3 v3.5.9 // indirect
@@ -45,4 +45,4 @@ require (
 
 replace github.com/cat3306/gnetrpc => ../../../../../github.com/cat3306/gnetrpc
 
-replace github.com/panjf2000/gnet/v2 => github.com/cat3306/gnet/v2 v2.3.4-0.20231219133356-c8a16922f414
+replace github.com/panjf2000/gnet/v2 => github.com/cat3306/gnet/v2 v2.3.5
