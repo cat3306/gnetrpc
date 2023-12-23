@@ -62,6 +62,9 @@ func (c *Client) process(ctx *protocol.Context) {
 		rpclog.Errorf("process err:%s,path:%s,method:%s", err.Error(), ctx.ServicePath, ctx.ServiceMethod)
 	}
 }
+func (c *Client) Close(msg string) {
+	c.conn.Close(msg)
+}
 func (c *Client) Run() (*Client, error) {
 	_, err := c.dial()
 	if err != nil {
