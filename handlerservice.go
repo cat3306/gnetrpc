@@ -23,9 +23,9 @@ func NewHandlerSet() *HandlerSet {
 		asyncSet: map[string]AsyncHandler{},
 	}
 }
-func (h *HandlerSet) ExecuteHandler(ctx *protocol.Context, gPool *ants.Pool) error {
+func (h *HandlerSet) Call(ctx *protocol.Context, gPool *ants.Pool) error {
 	var err error
-	key := util.JoinServiceMethod(ctx.ServicePath, ctx.ServiceMethod)
+	key := ctx.ServiceMethod
 	handler, ok := h.set[key]
 	if ok {
 		handler(ctx)
@@ -39,7 +39,7 @@ func (h *HandlerSet) ExecuteHandler(ctx *protocol.Context, gPool *ants.Pool) err
 		defer func() {
 			if r := recover(); r != nil {
 				stack := debug.Stack()
-				err := fmt.Errorf("[ExecuteHandler internal error] service: %s, method: %s,err:%v stack: %s", ctx.ServiceMethod, ctx.ServicePath, r, util.BytesToString(stack))
+				err := fmt.Errorf("[Call internal error] service: %s, method: %s,err:%v stack: %s", ctx.ServiceMethod, ctx.ServicePath, r, util.BytesToString(stack))
 				rpclog.Error(err)
 			}
 		}()
@@ -47,7 +47,7 @@ func (h *HandlerSet) ExecuteHandler(ctx *protocol.Context, gPool *ants.Pool) err
 	})
 	return err
 }
-func (h *HandlerSet) Register(v IService, isPrint bool) {
+func (h *HandlerSet) Register(v IService, isPrint bool) *HandlerSet {
 	value := reflect.ValueOf(v)
 	typ := reflect.TypeOf(v)
 	sName := reflect.Indirect(value).Type().Name()
@@ -66,7 +66,7 @@ func (h *HandlerSet) Register(v IService, isPrint bool) {
 		}
 		f, ok := value.Method(i).Interface().(func(ctx *protocol.Context))
 		if ok {
-			h.set[util.JoinServiceMethod(sName, mName)] = f
+			h.set[mName] = f
 			if isPrint {
 				rpclog.Info(fmt.Sprintf("registered [%s.%s]", sName, mName))
 			}
@@ -74,11 +74,12 @@ func (h *HandlerSet) Register(v IService, isPrint bool) {
 		}
 		af, ok := value.Method(i).Interface().(func(ctx *protocol.Context, tag struct{}))
 		if ok {
-			h.asyncSet[util.JoinServiceMethod(sName, mName)] = af
+			h.asyncSet[mName] = af
 			if isPrint {
 				rpclog.Info(fmt.Sprintf("registered [%s.go@%s]", sName, mName))
 			}
 		}
 
 	}
+	return h
 }

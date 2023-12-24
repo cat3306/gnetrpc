@@ -1,7 +1,6 @@
 package gnetrpc
 
 import (
-	"errors"
 	"fmt"
 	"github.com/cat3306/gnetrpc/protocol"
 	"github.com/cat3306/gnetrpc/rpclog"
@@ -27,7 +26,6 @@ type Server struct {
 	gnet.BuiltinEventEngine
 	eng             gnet.Engine
 	serviceSet      *ServiceSet
-	handlerSet      *HandlerSet
 	option          *serverOption
 	gPool           *ants.Pool
 	mainCtxChan     chan *protocol.Context
@@ -56,19 +54,9 @@ func (s *Server) process(ctx *protocol.Context) {
 			rpclog.Error(err)
 		}
 	}()
-
 	servicePath := ctx.ServicePath
 	method := ctx.ServiceMethod
-	err := s.handlerSet.ExecuteHandler(ctx, s.gPool)
-	if err == nil {
-		return
-	}
-	if err != nil && !errors.Is(err, NotFoundMethod) {
-		rpclog.Errorf("process err:%s,service:%s, method:%s", err.Error(), servicePath, method)
-		return
-	}
-
-	err = s.serviceSet.Call(ctx)
+	err := s.serviceSet.Call(ctx)
 	if err != nil {
 		rpclog.Errorf("process err:%s,service:%s, method:%s", err.Error(), servicePath, method)
 	}
@@ -133,13 +121,7 @@ func (s *Server) OnTraffic(c gnet.Conn) (action gnet.Action) {
 func (s *Server) Register(is ...IService) {
 	for _, v := range is {
 		s.serviceSet.Register(v, s.option.printMethod)
-		s.registerRouter(v)
 	}
-}
-
-// registerRouter func(ctx *protocol.Context) or func(ctx *protocol.Context, tag struct{}) should be registered
-func (s *Server) registerRouter(v IService) {
-	s.handlerSet.Register(v, s.option.printMethod)
 }
 
 func (s *Server) OnTick() (delay time.Duration, action gnet.Action) {
@@ -182,7 +164,6 @@ func (s *Server) SendMessage(conn gnet.Conn, path, method string, metadata map[s
 }
 func NewServer(options ...OptionFn) *Server {
 	s := &Server{
-		handlerSet: NewHandlerSet(),
 		gPool:      goroutine.Default(),
 		connMatrix: NewConnMatrix(),
 		option:     new(serverOption),
@@ -190,7 +171,7 @@ func NewServer(options ...OptionFn) *Server {
 			plugins: map[PluginType][]Plugin{},
 		},
 	}
-	s.serviceSet = NewServiceSet(s)
+	s.serviceSet = NewServiceSet(s.gPool, s.connMatrix)
 	for _, op := range options {
 		op(s.option)
 	}

@@ -57,7 +57,7 @@ func (c *Client) MainGoroutine() {
 
 }
 func (c *Client) process(ctx *protocol.Context) {
-	err := c.handlerSet.ExecuteHandler(ctx, goroutine.Default())
+	err := c.handlerSet.Call(ctx, goroutine.Default())
 	if err != nil {
 		rpclog.Errorf("process err:%s,path:%s,method:%s", err.Error(), ctx.ServicePath, ctx.ServiceMethod)
 	}

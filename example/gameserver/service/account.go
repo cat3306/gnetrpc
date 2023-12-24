@@ -270,3 +270,7 @@ func (a *Account) Chat(ctx *protocol.Context, req *string, rsp *string) *gnetrpc
 	*rsp = *req
 	return gnetrpc.CallBroadcastExceptSelf()
 }
+
+func (a *Account) Test(ctx *protocol.Context) {
+	rpclog.Info(ctx.Payload.String())
+}

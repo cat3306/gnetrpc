@@ -11,6 +11,9 @@ type BaseService struct {
 func (b *BaseService) Alias() string {
 	return ""
 }
+func (b *BaseService) Middleware(...Handler) string {
+	return ""
+}
 func (b *BaseService) Init(v ...interface{}) IService {
 	return b
 }

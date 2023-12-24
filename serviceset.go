@@ -5,18 +5,21 @@ import (
 	"fmt"
 	"github.com/cat3306/gnetrpc/protocol"
 	"github.com/cat3306/gnetrpc/rpclog"
+	"github.com/panjf2000/ants/v2"
 	"reflect"
 )
 
 type ServiceSet struct {
-	set    map[string]*Service
-	server *Server
+	set        map[string]*Service
+	gPool      *ants.Pool
+	connMatrix *ConnMatrix
 }
 
-func NewServiceSet(server *Server) *ServiceSet {
+func NewServiceSet(pool *ants.Pool, connMatrix *ConnMatrix) *ServiceSet {
 	return &ServiceSet{
-		set:    map[string]*Service{},
-		server: server,
+		set:        map[string]*Service{},
+		gPool:      pool,
+		connMatrix: connMatrix,
 	}
 }
 func (s *ServiceSet) GetService(sp string) (bool, *Service) {
@@ -103,6 +106,7 @@ func (s *ServiceSet) Register(v IService, isPrint bool) {
 		typ:         typ,
 		method:      methodSet,
 		asyncMethod: asyncMethods,
+		handlerSet:  NewHandlerSet().Register(v, isPrint),
 	}
 	if isPrint {
 		for _, m := range tmpService.method {
@@ -114,6 +118,7 @@ func (s *ServiceSet) Register(v IService, isPrint bool) {
 
 	}
 	s.set[tmpService.name] = tmpService
+
 }
 func (s *ServiceSet) Call(ctx *protocol.Context) error {
 
@@ -123,6 +128,14 @@ func (s *ServiceSet) Call(ctx *protocol.Context) error {
 	if tmpService == nil {
 		return NotFoundService
 	}
+	err := tmpService.handlerSet.Call(ctx, s.gPool)
+	if err == nil {
+		return nil
+	}
+	if err != nil && errors.Is(err, NotFoundMethod) {
+		return err
+	}
+
 	var isAsync bool
 	mType := tmpService.method[method]
 	if mType == nil {
@@ -137,14 +150,12 @@ func (s *ServiceSet) Call(ctx *protocol.Context) error {
 		return errors.New("invalid serialize type")
 	}
 	f := func() error {
-		defer func() {
-			protocol.PutCtx(ctx)
-		}()
 		replyv := reflectTypePools.Get(mType.ReplyType)
 		argv := reflectTypePools.Get(mType.ArgType)
 		defer func() {
 			reflectTypePools.Put(mType.ArgType, argv)
 			reflectTypePools.Put(mType.ReplyType, replyv)
+			protocol.PutCtx(ctx)
 		}()
 		//maybe ctx.Payload nil
 		if ctx.Payload.Len() != 0 {
@@ -162,24 +173,24 @@ func (s *ServiceSet) Call(ctx *protocol.Context) error {
 			return nil
 		case Self:
 			buffer := protocol.Encode(ctx, replyv)
-			s.server.connMatrix.SendToConn(buffer, ctx.Conn)
+			s.connMatrix.SendToConn(buffer, ctx.Conn)
 			return nil
 		case Broadcast:
 			buffer := protocol.Encode(ctx, replyv)
-			s.server.connMatrix.Broadcast(buffer)
+			s.connMatrix.Broadcast(buffer)
 		case BroadcastExceptSelf:
 			buffer := protocol.Encode(ctx, replyv)
-			s.server.connMatrix.BroadcastExceptOne(buffer, ctx.Conn.Id())
+			s.connMatrix.BroadcastExceptOne(buffer, ctx.Conn.Id())
 		case BroadcastSomeone:
 			buffer := protocol.Encode(ctx, replyv)
-			s.server.connMatrix.BroadcastSomeone(buffer, callModel.Ids)
+			s.connMatrix.BroadcastSomeone(buffer, callModel.Ids)
 		}
 
 		//rpclog.Infof("args %s", string(data))
 		return nil
 	}
 	if isAsync {
-		err := s.server.gPool.Submit(func() {
+		err := s.gPool.Submit(func() {
 			err := f()
 			if err != nil {
 				rpclog.Errorf("call async err:%s", err.Error())

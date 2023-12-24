@@ -7,32 +7,32 @@ import (
 	"sync"
 )
 
-var typeOfError = reflect.TypeOf((*error)(nil)).Elem()
 var typeOfCallMode = reflect.TypeOf((*CallMode)(nil))
 var typeOfContext = reflect.TypeOf((*protocol.Context)(nil))
 var typeOfSturct = reflect.TypeOf(struct{}{})
 
 type methodType struct {
-	sync.Mutex // protects counters
-	method     reflect.Method
-	ArgType    reflect.Type
-	ReplyType  reflect.Type
-	// numCalls   uint
+	sync.Mutex
+	method    reflect.Method
+	ArgType   reflect.Type
+	ReplyType reflect.Type
 }
 
-type functionType struct {
-	sync.Mutex // protects counters
-	fn         reflect.Value
-	ArgType    reflect.Type
-	ReplyType  reflect.Type
-}
+//type functionType struct {
+//	sync.Mutex
+//	fn         reflect.Value
+//	ArgType    reflect.Type
+//	ReplyType  reflect.Type
+//}
 
 type Service struct {
-	name        string                 // name of Service
-	value       reflect.Value          // receiver of methods for the Service
-	typ         reflect.Type           // type of the receiver
-	method      map[string]*methodType // registered methods
+	name        string
+	value       reflect.Value
+	typ         reflect.Type
+	method      map[string]*methodType
 	asyncMethod map[string]*methodType
+	preHandler  []Handler
+	handlerSet  *HandlerSet
 }
 
 func isExportedOrBuiltinType(t reflect.Type) bool {
@@ -45,14 +45,14 @@ func isExportedOrBuiltinType(t reflect.Type) bool {
 func (s *Service) call(ctx *protocol.Context, mtype *methodType, argv, replyv reflect.Value, isAsync bool) *CallMode {
 
 	function := mtype.method.Func
-	// Invoke the method, providing a new value for the reply.
+
 	var returnValues []reflect.Value
 	if isAsync {
 		returnValues = function.Call([]reflect.Value{s.value, reflect.ValueOf(ctx), argv, replyv, reflect.ValueOf(struct{}{})})
 	} else {
 		returnValues = function.Call([]reflect.Value{s.value, reflect.ValueOf(ctx), argv, replyv})
 	}
-	// The return value for the method is an error.
+
 	callModeInter := returnValues[0].Interface()
 	var (
 		callMode *CallMode
