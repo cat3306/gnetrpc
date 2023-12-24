@@ -1,11 +1,16 @@
 package view
 
 import (
+	"encoding/json"
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/layout"
 	"fyne.io/fyne/v2/widget"
 	"github.com/cat3306/gnetrpc/protocol"
+)
+
+var (
+	CodeSelectList = []string{"json", "string"}
 )
 
 type SendView struct {
@@ -15,6 +20,7 @@ type SendView struct {
 	SendBtn       *widget.Button
 	BodyInput     *Input
 	CodeSelect    *widget.Select
+	Metadata      *Input
 	serializeType protocol.SerializeType
 }
 
@@ -24,8 +30,9 @@ func (s *SendView) Join() *fyne.Container {
 		s.Path.Join(),
 		s.Method.Join(),
 		s.CodeSelect,
-		s.SendBtn,
+		s.Metadata.Join(),
 		s.BodyInput.Join(),
+		s.SendBtn,
 	)
 
 	border := container.NewBorder(widget.NewSeparator(), widget.NewSeparator(), widget.NewSeparator(), widget.NewSeparator(), box)
@@ -57,7 +64,15 @@ func (s *SendView) Init() *fyne.Container {
 			} else if s.serializeType == protocol.String {
 				body = s.BodyInput.Entry.Text
 			}
-			RpcClient.Client.Call(s.Path.Entry.Text, s.Method.Entry.Text, nil, s.serializeType, body)
+			metaData := make(map[string]string)
+			if s.Metadata.Entry.Text != "" {
+				err := json.Unmarshal([]byte(s.Metadata.Entry.Text), &metaData)
+				if err != nil {
+					GlobalText.msgChan <- err.Error()
+				}
+			}
+
+			RpcClient.Client.Call(s.Path.Entry.Text, s.Method.Entry.Text, metaData, s.serializeType, body)
 		}
 	})
 
@@ -69,7 +84,7 @@ func (s *SendView) Init() *fyne.Container {
 	}
 	s.BodyInput = bodyI
 
-	s.CodeSelect = widget.NewSelect([]string{"json", "string"}, func(tmp string) {
+	s.CodeSelect = widget.NewSelect(CodeSelectList, func(tmp string) {
 		if tmp == "json" {
 			s.serializeType = protocol.Json
 		} else if tmp == "string" {
@@ -78,5 +93,14 @@ func (s *SendView) Init() *fyne.Container {
 			s.serializeType = protocol.Json
 		}
 	})
+	s.CodeSelect.SetSelectedIndex(0)
+
+	metadata := &Input{
+		Layout:    layout.NewFormLayout(),
+		Label:     widget.NewLabel("metadata:"),
+		Entry:     widget.NewMultiLineEntry(),
+		Container: nil,
+	}
+	s.Metadata = metadata
 	return s.Join()
 }

@@ -76,8 +76,15 @@ func (u *UpperLeftView) Connect() {
 		return
 	}
 	RpcClient.Client = client
-	u.ConnBtn.Disable()
-	u.DisConnBtn.Enable()
+	cp := &ClosePlugin{
+		ConnectBtn:    u.ConnBtn,
+		DisConnectBtn: u.DisConnBtn,
+	}
+	op := &OpenPlugin{
+		ConnectBtn:    u.ConnBtn,
+		DisConnectBtn: u.DisConnBtn,
+	}
+	RpcClient.Client.AddPlugin(cp, op)
 	go u.ReceiveDemon()
 }
 func (u *UpperLeftView) ReceiveDemon() {

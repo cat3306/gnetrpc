@@ -64,6 +64,7 @@ func (c *Client) process(ctx *protocol.Context) {
 }
 func (c *Client) Close(msg string) {
 	c.conn.Close(msg)
+
 }
 func (c *Client) Run() (*Client, error) {
 	_, err := c.dial()
@@ -90,7 +91,8 @@ func (c *Client) OnBoot(e gnet.Engine) (action gnet.Action) {
 func (c *Client) OnShutdown(e gnet.Engine) {
 }
 func (c *Client) OnOpen(conn gnet.Conn) ([]byte, gnet.Action) {
-	rpclog.Info("conn", conn.Fd())
+	rpclog.Info("client connected,id:", conn.Fd())
+	c.pluginContainer.DoDo(PluginTypeOnOpen, c.conn)
 	return nil, gnet.None
 }
 
@@ -99,6 +101,7 @@ func (c *Client) OnClose(conn gnet.Conn, err error) gnet.Action {
 	if err != nil {
 		errMsg = err.Error()
 	}
+	c.pluginContainer.DoDo(PluginTypeOnClose, c.conn)
 	rpclog.Warnf("conn close err:%s", errMsg)
 	return gnet.None
 }
@@ -122,7 +125,11 @@ func (c *Client) Register(is ...IService) *Client {
 	}
 	return c
 }
-
+func (c *Client) AddPlugin(ps ...Plugin) {
+	for _, p := range ps {
+		c.pluginContainer.Add(p.Type(), p)
+	}
+}
 func (c *Client) Call(servicePath string, serviceMethod string, metadata map[string]string, sType protocol.SerializeType, v interface{}) error {
 	ctx := protocol.Context{
 		ServicePath:   servicePath,
