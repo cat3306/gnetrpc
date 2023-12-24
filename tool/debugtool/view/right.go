@@ -19,7 +19,7 @@ type SendView struct {
 	Path          *Input
 	SendBtn       *widget.Button
 	BodyInput     *Input
-	CodeSelect    *widget.Select
+	CodeSelect    *Select
 	Metadata      *Input
 	serializeType protocol.SerializeType
 }
@@ -29,7 +29,7 @@ func (s *SendView) Join() *fyne.Container {
 		s.Title,
 		s.Path.Join(),
 		s.Method.Join(),
-		s.CodeSelect,
+		s.CodeSelect.Join(),
 		s.Metadata.Join(),
 		s.BodyInput.Join(),
 		s.SendBtn,
@@ -84,7 +84,7 @@ func (s *SendView) Init() *fyne.Container {
 	}
 	s.BodyInput = bodyI
 
-	s.CodeSelect = widget.NewSelect(CodeSelectList, func(tmp string) {
+	tmpSelect := widget.NewSelect(CodeSelectList, func(tmp string) {
 		if tmp == "json" {
 			s.serializeType = protocol.Json
 		} else if tmp == "string" {
@@ -93,7 +93,13 @@ func (s *SendView) Init() *fyne.Container {
 			s.serializeType = protocol.Json
 		}
 	})
-	s.CodeSelect.SetSelectedIndex(0)
+	tmpSelect.SetSelectedIndex(0)
+
+	s.CodeSelect = &Select{
+		Layout: layout.NewFormLayout(),
+		Label:  widget.NewLabel("serialize type:"),
+		Select: tmpSelect,
+	}
 
 	metadata := &Input{
 		Layout:    layout.NewFormLayout(),

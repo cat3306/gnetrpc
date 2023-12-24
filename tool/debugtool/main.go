@@ -16,8 +16,7 @@ var (
 func main() {
 	a := app.New()
 	a.Settings().SetTheme(&the.MyTheme{})
-	//red := color.RGBA{R: 0xff, G: 0, B: 0, A: 0xff}
-	w := a.NewWindow("Hello")
+	w := a.NewWindow("gnetrpc debug tool")
 	w.Resize(fyne.NewSize(width, height))
 	upperLeft := view.InitUpperLeftView()
 	view.GlobalText = view.NewTextView()
