@@ -265,3 +265,8 @@ func EmailSend(to []string, title string, context string, from string) error {
 	return nil
 
 }
+
+func (a *Account) Chat(ctx *protocol.Context, req *string, rsp *string) *gnetrpc.CallMode {
+	*rsp = *req
+	return gnetrpc.CallBroadcastExceptSelf()
+}

@@ -26,7 +26,7 @@ type SendView struct {
 
 func (s *SendView) Join() *fyne.Container {
 	box := container.NewVBox(
-		s.Title,
+
 		s.Path.Join(),
 		s.Method.Join(),
 		s.CodeSelect.Join(),
@@ -35,7 +35,7 @@ func (s *SendView) Join() *fyne.Container {
 		s.SendBtn,
 	)
 
-	border := container.NewBorder(widget.NewSeparator(), widget.NewSeparator(), widget.NewSeparator(), widget.NewSeparator(), box)
+	border := container.NewBorder(s.Title, widget.NewSeparator(), widget.NewSeparator(), widget.NewSeparator(), box)
 	return border
 }
 
@@ -55,8 +55,11 @@ func (s *SendView) Init() *fyne.Container {
 		Label:  widget.NewLabel("method:"),
 		Entry:  me,
 	}
-	s.Title = widget.NewLabel("send binary")
+	s.Title = widget.NewLabelWithStyle("send binary", fyne.TextAlignCenter, fyne.TextStyle{})
 	s.SendBtn = widget.NewButton("send", func() {
+		if s.BodyInput.Entry.Text == "" {
+			return
+		}
 		if RpcClient.Client != nil {
 			var body interface{}
 			if s.serializeType == protocol.Json {
@@ -68,7 +71,8 @@ func (s *SendView) Init() *fyne.Container {
 			if s.Metadata.Entry.Text != "" {
 				err := json.Unmarshal([]byte(s.Metadata.Entry.Text), &metaData)
 				if err != nil {
-					GlobalText.msgChan <- err.Error()
+					GlobalText.msgChan <- "send json.Unmarshal:err" + err.Error()
+					return
 				}
 			}
 

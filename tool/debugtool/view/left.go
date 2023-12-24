@@ -26,7 +26,7 @@ type UpperLeftView struct {
 	IpInput    *Input
 	PortInput  *Input
 	Container  *fyne.Container
-	NetWork    *widget.Select
+	NetWork    *Select
 	ConnBtn    *widget.Button
 	DisConnBtn *widget.Button
 	ClientInfo ClientInfo
@@ -34,12 +34,17 @@ type UpperLeftView struct {
 
 func (u *UpperLeftView) Join() *fyne.Container {
 	if u.Container == nil {
+
+		//btnBox := container.NewBorder(nil, nil, u.ConnBtn, u.DisConnBtn, nil)
+		buttonsContainer := container.New(layout.NewHBoxLayout(),
+			container.New(layout.NewGridWrapLayout(fyne.NewSize(155, 30)), u.ConnBtn),
+			container.New(layout.NewGridWrapLayout(fyne.NewSize(155, 30)), u.DisConnBtn),
+		)
 		box := container.NewVBox(u.Title,
 			u.IpInput.Join(),
 			u.PortInput.Join(),
-			u.NetWork,
-			u.ConnBtn,
-			u.DisConnBtn,
+			u.NetWork.Join(),
+			buttonsContainer,
 		)
 		border := container.NewBorder(widget.NewSeparator(), widget.NewSeparator(), widget.NewSeparator(), widget.NewSeparator(), box)
 		u.Container = border
@@ -115,8 +120,14 @@ func InitUpperLeftView() *UpperLeftView {
 		PortInput: port,
 		Title:     title,
 	}
-	uv.NetWork = widget.NewSelect(NetWorkSelect, uv.SelectNetwork)
-	uv.NetWork.SetSelected(NetWorkSelect[0])
+	tmpNetwork := widget.NewSelect(NetWorkSelect, uv.SelectNetwork)
+	tmpNetwork.SetSelected(NetWorkSelect[0])
+	uv.NetWork = &Select{
+		Layout: layout.NewFormLayout(),
+		Label:  widget.NewLabel("network:"),
+		Select: tmpNetwork,
+	}
+
 	uv.ConnBtn = widget.NewButton("connect", uv.Connect)
 	uv.DisConnBtn = widget.NewButton("disconnect", uv.DisConnect)
 	uv.DisConnBtn.Disable()
