@@ -8,19 +8,45 @@ import (
 	"github.com/panjf2000/ants/v2"
 	"reflect"
 	"runtime/debug"
+	"sort"
 )
 
 type Handler func(ctx *protocol.Context)
 type AsyncHandler func(ctx *protocol.Context, tag struct{})
+type PreHandler func() (func(ctx *protocol.Context), int)
+
+type PreFunc struct {
+	f     Handler
+	order int
+}
+type PreFuncList []PreFunc
+
+func (p PreFuncList) Less(i, j int) bool {
+	return p[i].order < p[j].order
+}
+func (p PreFuncList) Len() int {
+	return len(p)
+}
+func (p PreFuncList) Swap(i, j int) {
+	p[i], p[j] = p[j], p[i]
+}
+func (p PreFuncList) Call(ctx *protocol.Context) {
+	for _, pre := range p {
+		pre.f(ctx)
+	}
+}
+
 type HandlerSet struct {
-	set      map[string]Handler
-	asyncSet map[string]AsyncHandler
+	set        map[string]Handler
+	asyncSet   map[string]AsyncHandler
+	preHandler PreFuncList
 }
 
 func NewHandlerSet() *HandlerSet {
 	return &HandlerSet{
-		set:      map[string]Handler{},
-		asyncSet: map[string]AsyncHandler{},
+		set:        map[string]Handler{},
+		asyncSet:   map[string]AsyncHandler{},
+		preHandler: make([]PreFunc, 0),
 	}
 }
 func (h *HandlerSet) Call(ctx *protocol.Context, gPool *ants.Pool) error {
@@ -28,6 +54,8 @@ func (h *HandlerSet) Call(ctx *protocol.Context, gPool *ants.Pool) error {
 	key := ctx.ServiceMethod
 	handler, ok := h.set[key]
 	if ok {
+		// sync
+		h.preHandler.Call(ctx)
 		handler(ctx)
 		return nil
 	}
@@ -43,6 +71,7 @@ func (h *HandlerSet) Call(ctx *protocol.Context, gPool *ants.Pool) error {
 				rpclog.Error(err)
 			}
 		}()
+		h.preHandler.Call(ctx)
 		asHandler(ctx, struct{}{})
 	})
 	return err
@@ -79,7 +108,18 @@ func (h *HandlerSet) Register(v IService, isPrint bool) *HandlerSet {
 				rpclog.Info(fmt.Sprintf("registered [%s.go@%s]", sName, mName))
 			}
 		}
-
+		preFunc, ok := value.Method(i).Interface().(func() (func(ctx *protocol.Context), int))
+		if ok {
+			preF, order := preFunc()
+			h.preHandler = append(h.preHandler, PreFunc{
+				f:     preF,
+				order: order,
+			})
+			if isPrint {
+				rpclog.Info(fmt.Sprintf("registered [%s.Pre@%s]", sName, mName))
+			}
+		}
 	}
+	sort.Sort(h.preHandler)
 	return h
 }

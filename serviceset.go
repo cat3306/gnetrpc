@@ -132,7 +132,7 @@ func (s *ServiceSet) Call(ctx *protocol.Context) error {
 	if err == nil {
 		return nil
 	}
-	if err != nil && errors.Is(err, NotFoundMethod) {
+	if err != nil && !errors.Is(err, NotFoundMethod) {
 		return err
 	}
 
@@ -161,9 +161,11 @@ func (s *ServiceSet) Call(ctx *protocol.Context) error {
 		if ctx.Payload.Len() != 0 {
 			err := codec.Unmarshal(ctx.Payload.Bytes(), argv)
 			if err != nil {
-				return err
+
+				return fmt.Errorf("codec.Unmarshal err:%s", err.Error())
 			}
 		}
+		tmpService.handlerSet.preHandler.Call(ctx)
 		callModel := tmpService.call(ctx, mType, reflect.ValueOf(argv), reflect.ValueOf(replyv), isAsync)
 		if callModel == nil {
 			return nil
@@ -193,7 +195,7 @@ func (s *ServiceSet) Call(ctx *protocol.Context) error {
 		err := s.gPool.Submit(func() {
 			err := f()
 			if err != nil {
-				rpclog.Errorf("call async err:%s", err.Error())
+				rpclog.Errorf("call async %s", err.Error())
 			}
 		})
 		return err

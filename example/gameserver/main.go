@@ -36,6 +36,7 @@ func main() {
 		new(plugin.ClosePlugin),
 	)
 	s.Register(new(service.Account))
+
 	err = s.Run(gnetrpc.TcpNetwork, ":7898")
 	fmt.Println(err)
 }

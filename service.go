@@ -31,7 +31,6 @@ type Service struct {
 	typ         reflect.Type
 	method      map[string]*methodType
 	asyncMethod map[string]*methodType
-	preHandler  []Handler
 	handlerSet  *HandlerSet
 }
 

@@ -25,6 +25,9 @@ type Arith struct {
 func (t *Arith) Init(v ...interface{}) gnetrpc.IService {
 	return t
 }
+func (t *Arith) Alias() string {
+	return ""
+}
 func (t *Arith) Mul(ctx *protocol.Context, args *Args, reply *Reply) (*gnetrpc.CallMode, error) {
 	reply.C = args.A * args.B
 	fmt.Printf("call: %d * %d = %d\n", args.A, args.B, reply.C)
