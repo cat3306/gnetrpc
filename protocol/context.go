@@ -2,6 +2,7 @@ package protocol
 
 import (
 	"context"
+	"github.com/cat3306/gnetrpc/common"
 	"github.com/panjf2000/ants/v2"
 	"github.com/panjf2000/gnet/v2"
 	"github.com/valyala/bytebufferpool"
@@ -36,9 +37,10 @@ type Context struct {
 	ServiceMethod string
 	Metadata      map[string]string
 	//SerializeType uint8
-	MsgSeq uint64 //reserved field
-	Ctx    context.Context
-	GPool  *ants.Pool
+	MsgSeq     uint64 //reserved field
+	Ctx        context.Context
+	GPool      *ants.Pool
+	ConnMatrix *common.ConnMatrix
 }
 
 func (c *Context) Reset() {

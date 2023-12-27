@@ -2,6 +2,7 @@ package service
 
 import (
 	"github.com/cat3306/gnetrpc"
+	"github.com/cat3306/gnetrpc/common"
 	"github.com/cat3306/gnetrpc/example/gameserver/util"
 	"github.com/cat3306/gnetrpc/protocol"
 )
@@ -42,7 +43,7 @@ func (r *RoomMgr) GetRoom(id string) (*Room, bool) {
 func (r *RoomMgr) CreateRoom(ctx *protocol.Context, req *CreateRoomReq, rsp *ApiRsp) *gnetrpc.CallMode {
 	_, exists := ctx.Conn.GetProperty(RoomIdKey)
 	if exists {
-		rsp.Err("already create room")
+		rsp.Err("already in room")
 		return gnetrpc.CallSelf()
 	}
 	id := util.GenId(6)
@@ -53,7 +54,7 @@ func (r *RoomMgr) CreateRoom(ctx *protocol.Context, req *CreateRoomReq, rsp *Api
 		gameState:  false,
 		scene:      0,
 		id:         id,
-		connMatrix: gnetrpc.NewConnMatrix(false),
+		connMatrix: common.NewConnMatrix(false),
 	}
 	room.connMatrix.Add(ctx.Conn)
 	r.AddRoom(room)
@@ -86,6 +87,7 @@ type RoomInfosRsp struct {
 	Id     string `json:"id"`
 	MaxNum int    `json:"max_num"` //人数
 	Pwd    string `json:"pwd"`     //密码
+	Cnt    int    `json:"cnt"`
 }
 
 func (r *RoomMgr) RoomInfos(ctx *protocol.Context, req *struct{}, rsp *ApiRsp) *gnetrpc.CallMode {
@@ -95,8 +97,27 @@ func (r *RoomMgr) RoomInfos(ctx *protocol.Context, req *struct{}, rsp *ApiRsp) *
 			Id:     v.id,
 			MaxNum: v.maxNum,
 			Pwd:    v.pwd,
+			Cnt:    v.connMatrix.Len(),
 		})
 	}
 	rsp.Ok(list)
 	return gnetrpc.CallSelf()
+}
+
+func (r *RoomMgr) Join(ctx *protocol.Context, id *string, rsp *ApiRsp) *gnetrpc.CallMode {
+	ctx.H.SerializeType = byte(protocol.Json)
+	_, exists := ctx.Conn.GetProperty(RoomIdKey)
+	if exists {
+		rsp.Err("already in room")
+		return gnetrpc.CallSelf()
+	}
+	room, ok := r.GetRoom(*id)
+	if !ok {
+		return gnetrpc.CallSelf()
+	}
+	room.connMatrix.Add(ctx.Conn)
+	ctx.Conn.SetProperty(RoomIdKey, *id)
+	ctx.ConnMatrix = room.connMatrix //room broadcast
+	rsp.Ok(nil)
+	return gnetrpc.CallBroadcast()
 }

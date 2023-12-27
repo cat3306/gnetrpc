@@ -10,16 +10,14 @@ import (
 )
 
 type ServiceSet struct {
-	set        map[string]*Service
-	gPool      *ants.Pool
-	connMatrix *ConnMatrix
+	set   map[string]*Service
+	gPool *ants.Pool
 }
 
-func NewServiceSet(pool *ants.Pool, connMatrix *ConnMatrix) *ServiceSet {
+func NewServiceSet(pool *ants.Pool) *ServiceSet {
 	return &ServiceSet{
-		set:        map[string]*Service{},
-		gPool:      pool,
-		connMatrix: connMatrix,
+		set:   map[string]*Service{},
+		gPool: pool,
 	}
 }
 func (s *ServiceSet) GetService(sp string) (bool, *Service) {
@@ -175,17 +173,17 @@ func (s *ServiceSet) Call(ctx *protocol.Context) error {
 			return nil
 		case Self:
 			buffer := protocol.Encode(ctx, replyv)
-			s.connMatrix.SendToConn(buffer, ctx.Conn)
+			ctx.ConnMatrix.SendToConn(buffer, ctx.Conn)
 			return nil
 		case Broadcast:
 			buffer := protocol.Encode(ctx, replyv)
-			s.connMatrix.Broadcast(buffer)
+			ctx.ConnMatrix.Broadcast(buffer)
 		case BroadcastExceptSelf:
 			buffer := protocol.Encode(ctx, replyv)
-			s.connMatrix.BroadcastExceptOne(buffer, ctx.Conn.Id())
+			ctx.ConnMatrix.BroadcastExceptOne(buffer, ctx.Conn.Id())
 		case BroadcastSomeone:
 			buffer := protocol.Encode(ctx, replyv)
-			s.connMatrix.BroadcastSomeone(buffer, callModel.Ids)
+			ctx.ConnMatrix.BroadcastSomeone(buffer, callModel.Ids)
 		}
 
 		//rpclog.Infof("args %s", string(data))

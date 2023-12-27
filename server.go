@@ -2,6 +2,7 @@ package gnetrpc
 
 import (
 	"fmt"
+	"github.com/cat3306/gnetrpc/common"
 	"github.com/cat3306/gnetrpc/protocol"
 	"github.com/cat3306/gnetrpc/rpclog"
 	"github.com/cat3306/gnetrpc/share"
@@ -29,7 +30,7 @@ type Server struct {
 	option          *serverOption
 	gPool           *ants.Pool
 	mainCtxChan     chan *protocol.Context
-	connMatrix      *ConnMatrix
+	connMatrix      *common.ConnMatrix
 	authFunc        func(ctx *protocol.Context, token string) error
 	hotHandlerNum   int32
 	pluginContainer *pluginContainer
@@ -116,6 +117,7 @@ func (s *Server) OnTraffic(c gnet.Conn) (action gnet.Action) {
 		}
 	}
 	ctx.GPool = s.gPool
+	ctx.ConnMatrix = s.connMatrix
 	s.mainCtxChan <- ctx
 	return
 }
@@ -166,13 +168,13 @@ func (s *Server) SendMessage(conn gnet.Conn, path, method string, metadata map[s
 func NewServer(options ...OptionFn) *Server {
 	s := &Server{
 		gPool:      goroutine.Default(),
-		connMatrix: NewConnMatrix(true),
+		connMatrix: common.NewConnMatrix(true),
 		option:     new(serverOption),
 		pluginContainer: &pluginContainer{
 			plugins: map[PluginType][]Plugin{},
 		},
 	}
-	s.serviceSet = NewServiceSet(s.gPool, s.connMatrix)
+	s.serviceSet = NewServiceSet(s.gPool)
 	for _, op := range options {
 		op(s.option)
 	}

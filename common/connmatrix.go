@@ -1,4 +1,4 @@
-package gnetrpc
+package common
 
 import (
 	"github.com/cat3306/gnetrpc/rpclog"
@@ -88,7 +88,6 @@ func (c *ConnMatrix) BroadcastExceptOne(buffer *bytebufferpool.ByteBuffer, id st
 	}
 	wg := sync.WaitGroup{}
 	wg.Add(len(tmpList))
-	rpclog.Info(buffer.Len())
 	for _, v := range tmpList {
 		err := v.AsyncWrite(buffer.Bytes(), func(c gnet.Conn, err error) error {
 			wg.Done()
