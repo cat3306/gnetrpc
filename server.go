@@ -72,6 +72,7 @@ func (s *Server) OnShutdown(engine gnet.Engine) {
 }
 
 func (s *Server) OnOpen(c gnet.Conn) (out []byte, action gnet.Action) {
+	c.SetId(util.GenConnId(c.Fd()))
 	s.connMatrix.Add(c)
 	plugins := s.pluginContainer.Plugins(PluginTypeOnOpen)
 	for _, v := range plugins {
@@ -165,7 +166,7 @@ func (s *Server) SendMessage(conn gnet.Conn, path, method string, metadata map[s
 func NewServer(options ...OptionFn) *Server {
 	s := &Server{
 		gPool:      goroutine.Default(),
-		connMatrix: NewConnMatrix(),
+		connMatrix: NewConnMatrix(true),
 		option:     new(serverOption),
 		pluginContainer: &pluginContainer{
 			plugins: map[PluginType][]Plugin{},

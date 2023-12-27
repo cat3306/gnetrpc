@@ -266,35 +266,10 @@ func EmailSend(to []string, title string, context string, from string) error {
 
 }
 
-func (a *Account) Chat(ctx *protocol.Context, req *string, rsp *string) *gnetrpc.CallMode {
-	*rsp = *req
-	return gnetrpc.CallBroadcastExceptSelf()
-}
-
-func (a *Account) Test(ctx *protocol.Context) {
-	rpclog.Info(ctx.Payload.String())
-}
-
-func (a *Account) Auth() (f func(ctx *protocol.Context), sort int) {
-	sort = 2
-	f = func(ctx *protocol.Context) {
-		rpclog.Info("account auth pre handler:", sort)
-	}
-
-	return
-}
-func (a *Account) Auth0() (f func(ctx *protocol.Context), sort int) {
-	sort = 1
-	f = func(ctx *protocol.Context) {
-		rpclog.Info("account auth pre handler:", sort)
-	}
-	return
-}
-
-func (a *Account) Auth1() (f func(ctx *protocol.Context), sort int) {
-	sort = 0
-	f = func(ctx *protocol.Context) {
-		rpclog.Info("account auth pre handler:", sort)
-	}
-	return
-}
+//func (a *Account) Auth() (f func(ctx *protocol.Context), sort int) {=
+//	f = func(ctx *protocol.Context) {
+//		rpclog.Info("account auth pre handler:", sort)
+//	}
+//
+//	return
+//}

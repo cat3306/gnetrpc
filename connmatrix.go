@@ -1,12 +1,10 @@
 package gnetrpc
 
 import (
-	"fmt"
 	"github.com/cat3306/gnetrpc/rpclog"
 	"github.com/valyala/bytebufferpool"
 	"sync"
 
-	"github.com/lithammer/shortuuid/v4"
 	"github.com/panjf2000/gnet/v2"
 )
 
@@ -16,24 +14,22 @@ type ConnMatrix struct {
 	connMap map[string]gnet.Conn
 }
 
-func NewConnMatrix() *ConnMatrix {
+func NewConnMatrix(syncMode bool) *ConnMatrix {
 	return &ConnMatrix{
 		connMap: make(map[string]gnet.Conn),
-		sync:    true,
+		sync:    syncMode,
 	}
 }
 func (c *ConnMatrix) SetSync(sync bool) {
 	c.sync = sync
+	return
 }
-func (c *ConnMatrix) GenId(fd int) string {
-	return fmt.Sprintf("%s@%d", shortuuid.New(), fd)
-}
+
 func (c *ConnMatrix) Add(conn gnet.Conn) {
 	if c.sync {
 		c.locker.Lock()
 		defer c.locker.Unlock()
 	}
-	conn.SetId(c.GenId(conn.Fd()))
 	c.connMap[conn.Id()] = conn
 }
 func (c *ConnMatrix) Remove(id string) {
@@ -69,6 +65,13 @@ func (c *ConnMatrix) Broadcast(buffer *bytebufferpool.ByteBuffer) {
 	wg.Wait()
 	bytebufferpool.Put(buffer)
 }
+func (c *ConnMatrix) Len() int {
+	if c.sync {
+		c.locker.RLock()
+		defer c.locker.RUnlock()
+	}
+	return len(c.connMap)
+}
 func (c *ConnMatrix) BroadcastExceptOne(buffer *bytebufferpool.ByteBuffer, id string) {
 	if c.sync {
 		c.locker.RLock()
@@ -85,6 +88,7 @@ func (c *ConnMatrix) BroadcastExceptOne(buffer *bytebufferpool.ByteBuffer, id st
 	}
 	wg := sync.WaitGroup{}
 	wg.Add(len(tmpList))
+	rpclog.Info(buffer.Len())
 	for _, v := range tmpList {
 		err := v.AsyncWrite(buffer.Bytes(), func(c gnet.Conn, err error) error {
 			wg.Done()

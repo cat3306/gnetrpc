@@ -35,8 +35,10 @@ func main() {
 		new(plugin.ConnectPlugin),
 		new(plugin.ClosePlugin),
 	)
-	s.Register(new(service.Account))
-
+	s.Register(
+		new(service.Account),
+		new(service.RoomMgr).Init(),
+	)
 	err = s.Run(gnetrpc.TcpNetwork, ":7898")
 	fmt.Println(err)
 }

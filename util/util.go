@@ -1,6 +1,8 @@
 package util
 
 import (
+	"fmt"
+	"github.com/lithammer/shortuuid/v4"
 	"unicode"
 	"unicode/utf8"
 )
@@ -12,4 +14,8 @@ func IsExported(name string) bool {
 
 func JoinServiceMethod(s, m string) string {
 	return s + "@" + m
+}
+
+func GenConnId(fd int) string {
+	return fmt.Sprintf("%s@%d", shortuuid.New(), fd)
 }

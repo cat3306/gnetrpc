@@ -10,17 +10,6 @@ import (
 	"strings"
 )
 
-// 0                     4                       12          14
-// +---------------------+-----------------------+-----------+
-// |   header      |       seq             | code type |
-// +---------------------+-----------------------+-----------+
-// | path and method len |  path@method       			 	 |
-// +---------------------------------------------------------+                                   		            			 +
-// |                  payload        		             	 |
-// +                                   						 |
-// |                                  						 |
-// +---------------------------------------------------------+
-
 // header(4 byte)+msgSeq(8 byte)+pathMethodLen(4 byte)+metaDataLen(4 byte)+payloadLen(4 byte)
 // path@method(n byte)+metaData(n byte)+payload(n byte)
 const (
@@ -29,11 +18,7 @@ const (
 	pathMethodLen = uint32(4)
 	metaDataLen   = uint32(4)
 	payloadLen    = uint32(4)
-	//seqLen        = uint32(8)
-
-	serializeTypeLen = uint32(2)
-
-	maxBufferCap = uint32(1 << 24) //16M
+	maxBufferCap  = uint32(1 << 24) //16M
 )
 
 var (
