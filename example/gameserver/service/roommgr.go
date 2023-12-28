@@ -1,10 +1,16 @@
 package service
 
 import (
+	"errors"
 	"github.com/cat3306/gnetrpc"
 	"github.com/cat3306/gnetrpc/common"
 	"github.com/cat3306/gnetrpc/example/gameserver/util"
 	"github.com/cat3306/gnetrpc/protocol"
+	"github.com/panjf2000/gnet/v2"
+)
+
+var (
+	roomMgr *RoomMgr
 )
 
 type RoomMgr struct {
@@ -13,6 +19,7 @@ type RoomMgr struct {
 
 func (r *RoomMgr) Init(v ...interface{}) gnetrpc.IService {
 	r.rooms = make(map[string]*Room)
+	roomMgr = r
 	return r
 }
 func (r *RoomMgr) Alias() string {
@@ -40,7 +47,7 @@ func (r *RoomMgr) GetRoom(id string) (*Room, bool) {
 }
 
 // {"pwd":"123","max_num":10,"join_state":true}
-func (r *RoomMgr) CreateRoom(ctx *protocol.Context, req *CreateRoomReq, rsp *ApiRsp) *gnetrpc.CallMode {
+func (r *RoomMgr) Create(ctx *protocol.Context, req *CreateRoomReq, rsp *ApiRsp) *gnetrpc.CallMode {
 	_, exists := ctx.Conn.GetProperty(RoomIdKey)
 	if exists {
 		rsp.Err("already in room")
@@ -60,10 +67,31 @@ func (r *RoomMgr) CreateRoom(ctx *protocol.Context, req *CreateRoomReq, rsp *Api
 	r.AddRoom(room)
 	rsp.Ok(id)
 	ctx.Conn.SetProperty(RoomIdKey, id)
-	return gnetrpc.CallSelf()
+	return gnetrpc.CallBroadcast()
 }
 
-func (r *RoomMgr) LeaveRoom(ctx *protocol.Context, req *struct{}, rsp *ApiRsp) *gnetrpc.CallMode {
+func (r *RoomMgr) ConnOnClose(conn gnet.Conn) error {
+	roomId, exists := conn.GetProperty(RoomIdKey)
+	if !exists {
+		return errors.New("not join room yet")
+	}
+	room, ok := r.GetRoom(roomId.(string))
+	if !ok {
+		return errors.New("not found room")
+	}
+	room.connMatrix.Remove(conn.Id())
+	if room.connMatrix.Len() == 0 {
+		r.DelRoom(room.id)
+	} else {
+		ctx := protocol.GetCtx()
+		ctx.H.Fill(protocol.Json)
+		ctx.ServiceMethod = "RoomMgr"
+		ctx.ServicePath = "Leave"
+		room.connMatrix.Broadcast(protocol.Encode(ctx, new(ApiRsp).Ok("哈哈")))
+	}
+	return nil
+}
+func (r *RoomMgr) Leave(ctx *protocol.Context, req *struct{}, rsp *ApiRsp) *gnetrpc.CallMode {
 	roomId, exists := ctx.Conn.GetProperty(RoomIdKey)
 	if !exists {
 		rsp.Err("not join room yet")
@@ -77,10 +105,12 @@ func (r *RoomMgr) LeaveRoom(ctx *protocol.Context, req *struct{}, rsp *ApiRsp) *
 	room.connMatrix.Remove(ctx.Conn.Id())
 	if room.connMatrix.Len() == 0 {
 		r.DelRoom(room.id)
+	} else {
+		room.connMatrix.Broadcast(protocol.Encode(ctx, rsp.Ok("leave")))
 	}
 	ctx.Conn.DelProperty(RoomIdKey)
 	rsp.Ok(nil)
-	return gnetrpc.CallSelf()
+	return gnetrpc.CallNone()
 }
 
 type RoomInfosRsp struct {
@@ -90,7 +120,7 @@ type RoomInfosRsp struct {
 	Cnt    int    `json:"cnt"`
 }
 
-func (r *RoomMgr) RoomInfos(ctx *protocol.Context, req *struct{}, rsp *ApiRsp) *gnetrpc.CallMode {
+func (r *RoomMgr) RoomsInfo(ctx *protocol.Context, req *struct{}, rsp *ApiRsp) *gnetrpc.CallMode {
 	list := make([]RoomInfosRsp, 0)
 	for _, v := range r.rooms {
 		list = append(list, RoomInfosRsp{
@@ -117,7 +147,15 @@ func (r *RoomMgr) Join(ctx *protocol.Context, id *string, rsp *ApiRsp) *gnetrpc.
 	}
 	room.connMatrix.Add(ctx.Conn)
 	ctx.Conn.SetProperty(RoomIdKey, *id)
-	ctx.ConnMatrix = room.connMatrix //room broadcast
 	rsp.Ok(nil)
-	return gnetrpc.CallBroadcast()
+	room.connMatrix.Broadcast(protocol.Encode(ctx, rsp))
+	return gnetrpc.CallNone()
+}
+
+func (r *RoomMgr) Chat(ctx *protocol.Context, id *string, rsp *ApiRsp) *gnetrpc.CallMode {
+	return gnetrpc.CallNone()
+}
+
+func (r *RoomMgr) StartGame(ctx *protocol.Context, id *string, rsp *ApiRsp) *gnetrpc.CallMode {
+	return gnetrpc.CallNone()
 }

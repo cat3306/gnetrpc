@@ -28,3 +28,9 @@ func (h *Header) Check() error {
 	}
 	return nil
 }
+func (h *Header) Fill(s SerializeType) {
+	h.HeartBeat = 0
+	h.SerializeType = byte(s)
+	h.MagicNumber = MagicNumber
+	h.Version = Version
+}

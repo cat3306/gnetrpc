@@ -33,11 +33,12 @@ func main() {
 	//})
 	s.AddPlugin(
 		new(plugin.ConnectPlugin),
-		new(plugin.ClosePlugin),
+		new(service.ClosePlugin),
 	)
 	s.Register(
-		new(service.Account),
+		new(service.Account).Init(),
 		new(service.RoomMgr).Init(),
+		new(service.GameMgr).Init(),
 	)
 	err = s.Run(gnetrpc.TcpNetwork, ":7898")
 	fmt.Println(err)

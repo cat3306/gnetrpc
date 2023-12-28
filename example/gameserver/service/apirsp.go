@@ -16,7 +16,8 @@ func (a *ApiRsp) Err(msg string) {
 	a.Code = ErrCode
 }
 
-func (a *ApiRsp) Ok(data interface{}) {
+func (a *ApiRsp) Ok(data interface{}) *ApiRsp {
 	a.Data = data
 	a.Code = OkCode
+	return a
 }

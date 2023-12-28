@@ -92,7 +92,7 @@ func (s *Server) OnClose(c gnet.Conn, err error) (action gnet.Action) {
 	if err != nil {
 		reason = err.Error()
 	}
-	s.pluginContainer.DoDo(PluginTypeOnClose, c, reason)
+	s.pluginContainer.DoDo(PluginTypeOnClose, c, reason, s.mainCtxChan)
 	return
 }
 
