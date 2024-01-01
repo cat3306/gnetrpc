@@ -1,5 +1,6 @@
 package service
 
 const (
-	RoomIdKey = "_RoomId"
+	RoomIdKey   = "_RoomId"
+	UserInfoKey = "_UserInfo"
 )

@@ -10,11 +10,11 @@ import (
 	"github.com/cat3306/gnetrpc/plugin"
 )
 
-var configFile = flag.String("f", "conf/conf.json", "the config file")
+var configFile string
 
 func main() {
-
-	err := conf.Init(*configFile)
+	flag.StringVar(&configFile, "f", "conf/conf.json", "the config file")
+	err := conf.Init(configFile)
 	if err != nil {
 		panic(err)
 	}

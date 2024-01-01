@@ -59,8 +59,9 @@ type LoginRsp struct {
 	Nick   string `json:"Nick"`
 }
 
+// {"Email":"1273014435@qq.com","Pwd":"123"}
 func (a *Account) Login(ctx *protocol.Context, req *LoginReq, rsp *ApiRsp, tag struct{}) *gnetrpc.CallMode {
-	data, err := a.login(req)
+	data, err := a.login(req, ctx)
 	if err != nil {
 		rpclog.Errorf("Login err:%s,req:%+v", err.Error(), req)
 		rsp.Err(err.Error())
@@ -71,7 +72,7 @@ func (a *Account) Login(ctx *protocol.Context, req *LoginReq, rsp *ApiRsp, tag s
 	return gnetrpc.CallSelf()
 }
 
-func (a *Account) login(req *LoginReq) (*LoginRsp, error) {
+func (a *Account) login(req *LoginReq, ctx *protocol.Context) (*LoginRsp, error) {
 	if req.Email == "" || req.Pwd == "" {
 		return nil, errors.New("invalid args")
 	}
@@ -108,6 +109,7 @@ func (a *Account) login(req *LoginReq) (*LoginRsp, error) {
 	if err != nil {
 		return nil, err
 	}
+	ctx.Conn.SetProperty(UserInfoKey, &userProfile)
 	return rsp, nil
 }
 func (a *Account) Logout(ctx *protocol.Context, req *struct{}, rsp *ApiRsp, tag struct{}) *gnetrpc.CallMode {

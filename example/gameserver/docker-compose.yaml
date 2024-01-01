@@ -1,0 +1,12 @@
+services:
+  gameserver:
+    image: ubuntu
+    working_dir: /root
+    ports:
+      - 7878:7878
+    restart: always
+    command: ./gameserver -c conf.json
+    container_name: gameserever
+    volumes:
+      - ./gameserver:/root/gameserver
+      - ./conf/conf.json:/root/conf.json
