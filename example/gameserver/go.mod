@@ -43,6 +43,6 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
-replace github.com/cat3306/gnetrpc => ../../../../../github.com/cat3306/gnetrpc
+replace github.com/cat3306/gnetrpc => ../../../gnetrpc
 
 replace github.com/panjf2000/gnet/v2 => github.com/cat3306/gnet/v2 v2.3.5

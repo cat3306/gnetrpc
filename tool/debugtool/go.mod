@@ -48,6 +48,6 @@ require (
 	honnef.co/go/js/dom v0.0.0-20210725211120-f030747120f2 // indirect
 )
 
-replace github.com/cat3306/gnetrpc => ../../../../../github.com/cat3306/gnetrpc
+replace github.com/cat3306/gnetrpc => ../../../gnetrpc
 
 replace github.com/panjf2000/gnet/v2 => github.com/cat3306/gnet/v2 v2.3.5
