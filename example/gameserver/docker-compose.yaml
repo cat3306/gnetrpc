@@ -5,7 +5,7 @@ services:
     ports:
       - 7878:7878
     restart: always
-    command: ./gameserver -c conf.json
+    command: ./gameserver -f conf.json
     container_name: gameserever
     volumes:
       - ./gameserver:/root/gameserver
