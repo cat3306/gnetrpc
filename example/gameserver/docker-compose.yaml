@@ -10,3 +10,11 @@ services:
     volumes:
       - ./gameserver:/root/gameserver
       - ./conf/conf.json:/root/conf.json
+    networks:
+      - mysql_mysqlnet
+      - redis_default
+networks:
+  mysql_mysqlnet:
+    external: true
+  redis_default:
+    external: true
