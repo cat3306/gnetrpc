@@ -14,6 +14,7 @@ var configFile string
 
 func main() {
 	flag.StringVar(&configFile, "f", "conf/conf.json", "the config file")
+	flag.Parse()
 	err := conf.Init(configFile)
 	if err != nil {
 		panic(err)
