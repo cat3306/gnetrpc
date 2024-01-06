@@ -1,12 +1,13 @@
 package gnetrpc
 
 import (
+	"time"
+
 	"github.com/cat3306/gnetrpc/protocol"
 	"github.com/cat3306/gnetrpc/rpclog"
 	"github.com/panjf2000/gnet/v2"
 	"github.com/panjf2000/gnet/v2/pkg/pool/goroutine"
 	"github.com/valyala/bytebufferpool"
-	"time"
 )
 
 func NewClient(address string, network string, options ...OptionFn) *Client {

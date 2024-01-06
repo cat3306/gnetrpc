@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+
 	"github.com/cat3306/gnetrpc"
 	"github.com/cat3306/gnetrpc/example/gameserver/conf"
 	"github.com/cat3306/gnetrpc/example/gameserver/service"

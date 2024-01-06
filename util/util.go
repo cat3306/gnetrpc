@@ -2,9 +2,10 @@ package util
 
 import (
 	"fmt"
-	"github.com/lithammer/shortuuid/v4"
 	"unicode"
 	"unicode/utf8"
+
+	"github.com/lithammer/shortuuid/v4"
 )
 
 func IsExported(name string) bool {

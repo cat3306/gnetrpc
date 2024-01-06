@@ -2,9 +2,10 @@ package gnetrpc
 
 import (
 	"fmt"
+	"time"
+
 	"github.com/cat3306/gnetrpc/protocol"
 	"github.com/cat3306/gnetrpc/rpclog"
-	"time"
 )
 
 const (

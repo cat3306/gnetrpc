@@ -1,12 +1,13 @@
 package util
 
 import (
-	"github.com/cat3306/gnetrpc/rpclog"
 	"math"
 	"reflect"
 	"runtime"
 	"runtime/debug"
 	"time"
+
+	"github.com/cat3306/gnetrpc/rpclog"
 )
 
 type PanicRepeatRunArgs struct {

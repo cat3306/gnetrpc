@@ -2,6 +2,7 @@ package service
 
 import (
 	"errors"
+
 	"github.com/cat3306/gnetrpc"
 	"github.com/cat3306/gnetrpc/common"
 	"github.com/cat3306/gnetrpc/example/gameserver/util"
