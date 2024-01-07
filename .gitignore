@@ -3,3 +3,4 @@ example/server/server
 example/gameserver/gameserver
 tool/rpctool/rpctool
 tool/debugtool/debugtool
+.vscode/
