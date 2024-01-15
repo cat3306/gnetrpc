@@ -55,4 +55,4 @@ require (
 
 replace github.com/cat3306/gnetrpc => ../../../gnetrpc
 
-replace github.com/panjf2000/gnet/v2 => github.com/cat3306/gnet/v2 v2.3.5
+replace github.com/panjf2000/gnet/v2 => github.com/cat3306/gnet/v2 v2.3.7

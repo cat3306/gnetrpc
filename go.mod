@@ -20,4 +20,4 @@ require (
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1 // indirect
 )
 
-replace github.com/panjf2000/gnet/v2 => github.com/cat3306/gnet/v2 v2.3.5
+replace github.com/panjf2000/gnet/v2 => github.com/cat3306/gnet/v2 v2.3.7
