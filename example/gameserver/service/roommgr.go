@@ -153,7 +153,21 @@ func (r *RoomMgr) Join(ctx *protocol.Context, id *string, rsp *ApiRsp) *gnetrpc.
 	return gnetrpc.CallNone()
 }
 
-func (r *RoomMgr) Chat(ctx *protocol.Context, id *string, rsp *ApiRsp) *gnetrpc.CallMode {
+func (r *RoomMgr) Chat(ctx *protocol.Context, txt *string, rsp *ApiRsp) *gnetrpc.CallMode {
+	ctx.H.SerializeType = byte(protocol.Json)
+	v, ok := ctx.Conn.GetProperty(RoomIdKey)
+	if !ok {
+		rsp.Err("not join room")
+		return gnetrpc.CallNone()
+	}
+	roomId := v.(string)
+	room, ok := r.GetRoom(roomId)
+	if !ok {
+		rsp.Err("not found room")
+		return gnetrpc.CallSelf()
+	}
+	rsp.Ok(txt)
+	room.connMatrix.BroadcastExceptOne(protocol.Encode(ctx, rsp), ctx.Conn.Id())
 	return gnetrpc.CallNone()
 }
 

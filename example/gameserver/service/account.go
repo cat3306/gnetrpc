@@ -8,16 +8,17 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math/rand"
+	"net/smtp"
+	"strconv"
+	"time"
+
 	"github.com/cat3306/gnetrpc"
 	"github.com/cat3306/gnetrpc/example/gameserver/models"
 	"github.com/cat3306/gnetrpc/example/gameserver/thirdmodule"
 	"github.com/cat3306/gnetrpc/protocol"
 	"github.com/cat3306/gnetrpc/rpclog"
 	"github.com/google/uuid"
-	"math/rand"
-	"net/smtp"
-	"strconv"
-	"time"
 )
 
 type Account struct {
@@ -267,11 +268,3 @@ func EmailSend(to []string, title string, context string, from string) error {
 	return nil
 
 }
-
-//func (a *Account) Auth() (f func(ctx *protocol.Context), sort int) {=
-//	f = func(ctx *protocol.Context) {
-//		rpclog.Info("account auth pre handler:", sort)
-//	}
-//
-//	return
-//}
