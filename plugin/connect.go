@@ -16,6 +16,9 @@ func (c *ConnectPlugin) Type() gnetrpc.PluginType {
 	return gnetrpc.PluginTypeOnOpen
 }
 func (c *ConnectPlugin) OnDo(args ...interface{}) interface{} {
+	if len(args) == 0 {
+		return false
+	}
 	conn := args[0].(gnet.Conn)
 	rpclog.Infof("client connect id:%s,address:%s", conn.Id(), conn.RemoteAddr().String())
 	return true

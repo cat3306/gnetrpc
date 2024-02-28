@@ -2,13 +2,14 @@ package thirdmodule
 
 import (
 	"fmt"
+	"log"
+	"os"
+	"time"
+
 	"github.com/cat3306/gnetrpc/example/gameserver/conf"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
-	"log"
-	"os"
-	"time"
 )
 
 var (

@@ -1,10 +1,11 @@
 package plugin
 
 import (
+	"net"
+
 	"github.com/cat3306/gnetrpc"
 	"github.com/cat3306/gnetrpc/rpclog"
 	"github.com/panjf2000/gnet/v2"
-	"net"
 )
 
 type BlacklistPlugin struct {
@@ -29,6 +30,9 @@ func (b *BlacklistPlugin) Init(args ...interface{}) gnetrpc.Plugin {
 	return b
 }
 func (b *BlacklistPlugin) OnDo(args ...interface{}) interface{} {
+	if len(args) == 0 {
+		return false
+	}
 	conn := args[0].(gnet.Conn)
 	ip, _, err := net.SplitHostPort(conn.RemoteAddr().String())
 	if err != nil {

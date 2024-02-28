@@ -16,6 +16,9 @@ func (c *ClosePlugin) Init(args ...interface{}) gnetrpc.Plugin {
 	return c
 }
 func (c *ClosePlugin) OnDo(args ...interface{}) interface{} {
+	if len(args) == 0 {
+		return false
+	}
 	conn := args[0].(gnet.Conn)
 	rpclog.Warnf("client close id:%s,cause:%v", conn.Id(), args[1])
 	return true
