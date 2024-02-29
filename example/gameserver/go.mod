@@ -3,6 +3,7 @@ module github.com/cat3306/gnetrpc/example/gameserver
 go 1.20
 
 require (
+	github.com/allegro/bigcache/v3 v3.1.0
 	github.com/cat3306/gnetrpc v0.0.0-00010101000000-000000000000
 	github.com/cat3306/gocommon v0.0.0-20230914143826-c7ae75ca481f
 	github.com/go-redis/redis/v8 v8.11.5
