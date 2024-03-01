@@ -116,6 +116,9 @@ func (a *Account) login(req *LoginReq, ctx *protocol.Context) (*LoginRsp, error)
 func (a *Account) Logout(ctx *protocol.Context, req *struct{}, rsp *ApiRsp, tag struct{}) *gnetrpc.CallMode {
 
 	uv, _ := ctx.Conn.GetProperty("user_id")
+	if uv == nil {
+		return gnetrpc.CallNone()
+	}
 	userId := uv.(string)
 	err := a.logout(userId)
 	if err != nil {

@@ -37,7 +37,10 @@ func (b *BuiltinService) Heartbeat(ctx *protocol.Context, args *string, reply *s
 		}
 	}
 	ctx.Conn.SetProperty(lastHeartbeatKey, time.Now().UnixMilli())
-	// rpclog.Info(*args, ctx.Metadata)
+	if b.debug {
+		rpclog.Info(*args)
+	}
+	//rpclog.Info(*args, ctx.Metadata)
 	*reply = "❤️"
 	return CallSelf()
 }
