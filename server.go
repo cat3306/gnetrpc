@@ -2,6 +2,9 @@ package gnetrpc
 
 import (
 	"fmt"
+	"runtime/debug"
+	"time"
+
 	"github.com/cat3306/gnetrpc/common"
 	"github.com/cat3306/gnetrpc/protocol"
 	"github.com/cat3306/gnetrpc/rpclog"
@@ -11,8 +14,6 @@ import (
 	"github.com/panjf2000/gnet/v2"
 	"github.com/panjf2000/gnet/v2/pkg/pool/goroutine"
 	"github.com/valyala/bytebufferpool"
-	"runtime/debug"
-	"time"
 )
 
 type serverOption struct {
