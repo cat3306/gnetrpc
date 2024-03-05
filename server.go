@@ -42,6 +42,8 @@ type Server struct {
 	hotHandlerNum   int32
 	pluginContainer *pluginContainer
 	signalChan      chan os.Signal
+	shutdownCtx     context.Context
+	shutdonwFunc    context.CancelFunc
 }
 
 func (s *Server) UseAuthFunc(f func(ctx *protocol.Context, token string) error) {
@@ -49,10 +51,16 @@ func (s *Server) UseAuthFunc(f func(ctx *protocol.Context, token string) error) 
 }
 
 func (s *Server) mainGoroutine() {
-	for ctx := range s.mainCtxChan {
-		s.process(ctx)
+	for {
+		select {
+		case ctx := <-s.mainCtxChan:
+			s.process(ctx)
+		case <-s.shutdownCtx.Done():
+			//TODO shutdown logic
+			rpclog.Infof("mainGoroutine shutdown")
+			return
+		}
 	}
-
 }
 
 func (s *Server) process(ctx *protocol.Context) {
@@ -149,6 +157,7 @@ func (s *Server) notifySign() {
 	go func() {
 		sig := <-s.signalChan
 		rpclog.Infof("gnetrpc notify signal:%s", sig.String())
+		s.shutdonwFunc()
 		err := s.eng.Stop(context.Background())
 		if err != nil {
 			rpclog.Errorf("notifySign err:%s", err.Error())
@@ -193,6 +202,7 @@ func NewServer(options ...OptionFn) *Server {
 		},
 		signalChan: make(chan os.Signal, 1),
 	}
+	s.shutdownCtx, s.shutdonwFunc = context.WithCancel(context.Background())
 	s.serviceSet = NewServiceSet(s.gPool)
 	for _, op := range options {
 		op(s.option)
