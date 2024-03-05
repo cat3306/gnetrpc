@@ -1,8 +1,12 @@
 package gnetrpc
 
 import (
+	"context"
 	"fmt"
+	"os"
+	"os/signal"
 	"runtime/debug"
+	"syscall"
 	"time"
 
 	"github.com/cat3306/gnetrpc/common"
@@ -26,6 +30,8 @@ type serverOption struct {
 }
 type Server struct {
 	gnet.BuiltinEventEngine
+	network         string
+	addr            string
 	eng             gnet.Engine
 	serviceSet      *ServiceSet
 	option          *serverOption
@@ -35,13 +41,14 @@ type Server struct {
 	authFunc        func(ctx *protocol.Context, token string) error
 	hotHandlerNum   int32
 	pluginContainer *pluginContainer
+	signalChan      chan os.Signal
 }
 
 func (s *Server) UseAuthFunc(f func(ctx *protocol.Context, token string) error) {
 	s.authFunc = f
 }
-func (s *Server) MainGoroutine() {
 
+func (s *Server) mainGoroutine() {
 	for ctx := range s.mainCtxChan {
 		s.process(ctx)
 	}
@@ -65,11 +72,16 @@ func (s *Server) process(ctx *protocol.Context) {
 
 }
 func (s *Server) OnBoot(engine gnet.Engine) (action gnet.Action) {
+	s.eng = engine
+	go s.mainGoroutine()
+	go s.notifySign()
+	rpclog.Infof("gnetrpc start %s server on %s", s.network, s.addr)
 	s.pluginContainer.DoDo(PluginTypeOnBoot, nil)
 	return
 }
 
 func (s *Server) OnShutdown(engine gnet.Engine) {
+	rpclog.Infof("gnetrpc shutdown")
 	s.pluginContainer.DoDo(PluginTypeOnShutdown, nil)
 }
 
@@ -132,9 +144,20 @@ func (s *Server) OnTick() (delay time.Duration, action gnet.Action) {
 	return
 }
 
+func (s *Server) notifySign() {
+	signal.Notify(s.signalChan, syscall.SIGINT, syscall.SIGTERM)
+	go func() {
+		sig := <-s.signalChan
+		rpclog.Infof("gnetrpc notify signal:%s", sig.String())
+		err := s.eng.Stop(context.Background())
+		if err != nil {
+			rpclog.Errorf("notifySign err:%s", err.Error())
+		}
+	}()
+}
 func (s *Server) Run(netWork string, addr string) error {
-	go s.MainGoroutine()
-	rpclog.Infof("gnetrpc start %s server on %s", netWork, addr)
+	s.addr = addr
+	s.network = netWork
 	return gnet.Run(s, netWork+"://"+addr, gnet.WithOptions(s.option.gnetOptions))
 }
 func (s *Server) AddPlugin(ps ...Plugin) {
@@ -143,21 +166,15 @@ func (s *Server) AddPlugin(ps ...Plugin) {
 	}
 }
 func (s *Server) SendMessage(conn gnet.Conn, path, method string, metadata map[string]string, body []byte) {
-	buffer := protocol.Encode(&protocol.Context{
-		H: &protocol.Header{
-			MagicNumber:   protocol.MagicNumber,
-			Version:       protocol.Version,
-			HeartBeat:     0,
-			SerializeType: byte(protocol.CodeNone),
-		},
-		Payload:       nil,
-		Conn:          conn,
-		ServicePath:   path,
-		ServiceMethod: method,
-		Metadata:      metadata,
-		MsgSeq:        0,
-		Ctx:           nil,
-	}, body)
+	ctx := protocol.GetCtx()
+	ctx.H.MagicNumber = protocol.MagicNumber
+	ctx.H.Version = protocol.Version
+	ctx.H.SerializeType = byte(protocol.CodeNone)
+	ctx.Conn = conn
+	ctx.ServicePath = path
+	ctx.ServiceMethod = method
+	ctx.Metadata = metadata
+	buffer := protocol.Encode(ctx, body)
 	defer func() {
 		bytebufferpool.Put(buffer)
 	}()
@@ -174,6 +191,7 @@ func NewServer(options ...OptionFn) *Server {
 		pluginContainer: &pluginContainer{
 			plugins: map[PluginType][]Plugin{},
 		},
+		signalChan: make(chan os.Signal, 1),
 	}
 	s.serviceSet = NewServiceSet(s.gPool)
 	for _, op := range options {
