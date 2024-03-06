@@ -56,7 +56,7 @@ func (s *Server) mainGoroutine() {
 		case ctx := <-s.mainCtxChan:
 			s.process(ctx)
 		case <-s.shutdownCtx.Done():
-			//TODO shutdown logic
+
 			rpclog.Infof("mainGoroutine shutdown")
 			return
 		}
@@ -91,6 +91,7 @@ func (s *Server) OnBoot(engine gnet.Engine) (action gnet.Action) {
 func (s *Server) OnShutdown(engine gnet.Engine) {
 	rpclog.Infof("gnetrpc shutdown")
 	s.pluginContainer.DoDo(PluginTypeOnShutdown, nil)
+	s.connMatrix.RemoveAll("gnetrpc shutdown")
 }
 
 func (s *Server) OnOpen(c gnet.Conn) (out []byte, action gnet.Action) {

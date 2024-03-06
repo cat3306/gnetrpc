@@ -1,9 +1,10 @@
 package common
 
 import (
+	"sync"
+
 	"github.com/cat3306/gnetrpc/rpclog"
 	"github.com/valyala/bytebufferpool"
-	"sync"
 
 	"github.com/panjf2000/gnet/v2"
 )
@@ -39,7 +40,16 @@ func (c *ConnMatrix) Remove(id string) {
 	}
 	delete(c.connMap, id)
 }
-
+func (c *ConnMatrix) RemoveAll(msg string) {
+	if c.sync {
+		c.locker.Lock()
+		defer c.locker.Unlock()
+	}
+	for k, v := range c.connMap {
+		v.Close(msg)
+		delete(c.connMap, k)
+	}
+}
 func (c *ConnMatrix) Broadcast(buffer *bytebufferpool.ByteBuffer) {
 	if c.sync {
 		c.locker.RLock()

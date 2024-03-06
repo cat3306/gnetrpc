@@ -3,11 +3,12 @@ package protocol
 import (
 	"encoding/binary"
 	"errors"
+	"strings"
+
 	"github.com/cat3306/gnetrpc/rpclog"
 	"github.com/cat3306/gnetrpc/util"
 	"github.com/panjf2000/gnet/v2"
 	"github.com/valyala/bytebufferpool"
-	"strings"
 )
 
 // header(4 byte)+msgSeq(8 byte)+pathMethodLen(4 byte)+metaDataLen(4 byte)+payloadLen(4 byte)
@@ -106,9 +107,6 @@ func Decode(c gnet.Conn) (*Context, error) {
 	return ctx, nil
 }
 func Encode(ctx *Context, v interface{}) *bytebufferpool.ByteBuffer {
-	//if v == nil {
-	//	panic("v nil")
-	//}
 	if ctx.H == nil {
 		panic("encode header nil")
 	}

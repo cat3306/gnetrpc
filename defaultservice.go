@@ -44,3 +44,10 @@ func (b *BuiltinService) Heartbeat(ctx *protocol.Context, args *string, reply *s
 	*reply = "❤️"
 	return CallSelf()
 }
+
+func (b *BuiltinService) TestRpc(ctx *protocol.Context, args *string, reply *string) *CallMode {
+	rpclog.Infof("testrpc:%s", *args)
+	*reply = `\(^o^)/~`
+
+	return CallSelf()
+}
