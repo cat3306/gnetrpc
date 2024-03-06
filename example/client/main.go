@@ -2,11 +2,14 @@ package main
 
 import (
 	"fmt"
+	"math/rand"
+	"strconv"
+	"time"
+
 	"github.com/cat3306/gnetrpc"
 	"github.com/cat3306/gnetrpc/protocol"
 	"github.com/cat3306/gnetrpc/rpclog"
 	"github.com/cat3306/gnetrpc/share"
-	"time"
 )
 
 type CallReq struct {
@@ -50,7 +53,15 @@ func (a *Account) Register(ctx *protocol.Context) {
 func (a *Account) EmailCode(ctx *protocol.Context) {
 	rpclog.Info(ctx.Payload.String())
 }
-func main() {
+func multiClient(num int) {
+	for i := 0; i < num; i++ {
+		go singleClient()
+		time.Sleep(time.Duration(rand.Intn(100)) * time.Millisecond)
+	}
+	fmt.Println("done")
+	select {}
+}
+func singleClient() {
 	client, err := gnetrpc.NewClient("127.0.0.1:7898", "tcp", gnetrpc.WithClientAsyncMode()).
 		Register(
 			new(Builtin),
@@ -59,10 +70,12 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	//Login(client)
-	//HeartBeat(client)
-	Register(client)
-	//EmailCode(client)
+
+	HeartBeat(client)
+}
+func main() {
+	multiClient(2000)
+	//singleClient()
 }
 
 type LoginReq struct {
@@ -126,13 +139,15 @@ func EmailCode(client *gnetrpc.Client) {
 	time.Sleep(time.Second * 10)
 }
 func HeartBeat(client *gnetrpc.Client) {
+	i := 0
 	for {
+		i += 2
 		err := client.Call("Builtin", "Heartbeat", map[string]string{
 			share.AuthKey: "鸳鸯擦，鸳鸯体，你爱我，我爱你",
-		}, protocol.String, "💓")
+		}, protocol.String, "💓:"+strconv.Itoa(i))
 		if err != nil {
 			break
 		}
-		time.Sleep(time.Millisecond * 1000)
+		time.Sleep(time.Millisecond * 200)
 	}
 }

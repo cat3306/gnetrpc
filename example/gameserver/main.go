@@ -28,12 +28,12 @@ func main() {
 		gnetrpc.WithMainGoroutineChannelCap(10000),
 		//gnetrpc.WithReusePort(true),
 	)
-	//s.UseAuthFunc(func(ctx *protocol.Context, token string) error {
-	//	if token != "鸳鸯擦，鸳鸯体，你爱我，我爱你" {
-	//		return errors.New("你不爱我 !")
-	//	}
-	//	return nil
-	//})
+	// s.UseAuthFunc(func(ctx *protocol.Context, token string) error {
+	// 	if token != "" {
+	// 		return errors.New("")
+	// 	}
+	// 	return nil
+	// })
 	s.AddPlugin(
 		new(plugin.ConnectPlugin),
 		new(service.ClosePlugin),

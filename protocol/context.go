@@ -2,11 +2,12 @@ package protocol
 
 import (
 	"context"
+	"sync"
+
 	"github.com/cat3306/gnetrpc/common"
 	"github.com/panjf2000/ants/v2"
 	"github.com/panjf2000/gnet/v2"
 	"github.com/valyala/bytebufferpool"
-	"sync"
 )
 
 var (
@@ -22,10 +23,11 @@ var (
 )
 
 func GetCtx() *Context {
-	return CtxPool.Get().(*Context)
+	ctx := CtxPool.Get().(*Context)
+	ctx.Reset()
+	return ctx
 }
 func PutCtx(ctx *Context) {
-	ctx.Reset()
 	CtxPool.Put(ctx)
 }
 

@@ -1,7 +1,6 @@
 package gnetrpc
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/cat3306/gnetrpc/protocol"
@@ -24,24 +23,31 @@ func (b *BuiltinService) Init(v ...interface{}) IService {
 func (b *BuiltinService) Alias() string {
 	return BuiltinServiceName
 }
-func (b *BuiltinService) Heartbeat(ctx *protocol.Context, args *string, reply *string) *CallMode {
+func (b *BuiltinService) Heartbeat(ctx *protocol.Context, args *string, reply *string, tag struct{}) *CallMode {
 	last, ok := ctx.Conn.GetProperty(lastHeartbeatKey)
+	now := time.Now().UnixMilli()
 	if ok {
-		now := time.Now().UnixMilli()
 		milli := last.(int64)
-		if now-milli < maxHeartbeatFrequency.Milliseconds() {
-			msg := fmt.Sprintf("the heart interval should be greater than %dms closed it", maxHeartbeatFrequency/time.Millisecond)
-			rpclog.Errorf(msg)
-			ctx.Conn.Close("heart interval")
-			return nil
-		}
+		rpclog.Info(ctx.Conn.Id(), ";", now-milli)
 	}
-	ctx.Conn.SetProperty(lastHeartbeatKey, time.Now().UnixMilli())
+	// if ok {
+	// 	milli := last.(int64)
+	// 	rpclog.Info(ctx.Conn.Id(), ";", now-milli)
+	// 	if now-milli < maxHeartbeatFrequency.Milliseconds() {
+
+	// 		msg := fmt.Sprintf("id:%s the heart interval is %dms should be greater than %dms closed it", ctx.Conn.Id(), now-milli, maxHeartbeatFrequency/time.Millisecond)
+	// 		rpclog.Errorf(msg)
+	// 		ctx.Conn.Close("heart interval")
+	// 		os.Exit(0)
+	// 		return nil
+	// 	}
+	// }
+	ctx.Conn.SetProperty(lastHeartbeatKey, now)
 	if b.debug {
 		rpclog.Info(*args)
 	}
 	//rpclog.Info(*args, ctx.Metadata)
-	*reply = "❤️"
+	*reply = *args
 	return CallSelf()
 }
 

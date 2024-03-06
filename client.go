@@ -34,6 +34,7 @@ func NewClient(address string, network string, options ...OptionFn) *Client {
 		panic(err)
 	}
 	c.gCli = cli
+	c.gPool = goroutine.Default()
 	return c
 }
 
@@ -48,6 +49,7 @@ type Client struct {
 	network         string
 	asyncMode       bool
 	conn            gnet.Conn
+	gPool           *goroutine.Pool
 }
 
 func (c *Client) MainGoroutine() {
@@ -58,7 +60,7 @@ func (c *Client) MainGoroutine() {
 
 }
 func (c *Client) process(ctx *protocol.Context) {
-	err := c.handlerSet.Call(ctx, goroutine.Default())
+	err := c.handlerSet.Call(ctx, c.gPool)
 	if err != nil {
 		rpclog.Errorf("process err:%s,path:%s,method:%s", err.Error(), ctx.ServicePath, ctx.ServiceMethod)
 	}

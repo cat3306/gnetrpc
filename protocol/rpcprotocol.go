@@ -3,6 +3,7 @@ package protocol
 import (
 	"encoding/binary"
 	"errors"
+	"os"
 	"strings"
 
 	"github.com/cat3306/gnetrpc/rpclog"
@@ -69,7 +70,8 @@ func Decode(c gnet.Conn) (*Context, error) {
 	methodData := packetBuffer[fixedLen : fixedLen+pathMethodLength]
 	metaData := packetBuffer[fixedLen+pathMethodLength : fixedLen+pathMethodLength+metaDataLength]
 	payload := packetBuffer[fixedLen+pathMethodLength+metaDataLength:]
-	pathAndMethod := strings.Split(util.BytesToString(methodData), "@")
+
+	pathAndMethod := strings.Split(string(methodData), "@") //fix util.BytesToString()
 	if len(pathAndMethod) != 2 {
 		return nil, ErrInvalidMethodPath
 	}
@@ -93,8 +95,8 @@ func Decode(c gnet.Conn) (*Context, error) {
 	ctx.Payload = buffer
 	ctx.Conn = c
 	ctx.MsgSeq = msgSeq
-	codec := GetCodec(Json)
 	if len(metaData) != 0 {
+		codec := GetCodec(Json)
 		err = codec.Unmarshal(metaData, &ctx.Metadata)
 		if err != nil {
 			return nil, err
@@ -103,6 +105,10 @@ func Decode(c gnet.Conn) (*Context, error) {
 	err = ctx.H.Check()
 	if err != nil {
 		return nil, err
+	}
+	if method != "Heartbeat" {
+		rpclog.Errorf("ctx:=%+v", ctx)
+		os.Exit(0)
 	}
 	return ctx, nil
 }
