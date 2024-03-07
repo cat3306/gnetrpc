@@ -2,13 +2,14 @@ package gnetrpc
 
 import (
 	"fmt"
+	"reflect"
+	"runtime/debug"
+	"sort"
+
 	"github.com/cat3306/gnetrpc/protocol"
 	"github.com/cat3306/gnetrpc/rpclog"
 	"github.com/cat3306/gnetrpc/util"
 	"github.com/panjf2000/ants/v2"
-	"reflect"
-	"runtime/debug"
-	"sort"
 )
 
 type Handler func(ctx *protocol.Context)
@@ -48,6 +49,32 @@ func NewHandlerSet() *HandlerSet {
 		asyncSet:   map[string]AsyncHandler{},
 		preHandler: make([]PreFunc, 0),
 	}
+}
+
+// 同步
+func (h *HandlerSet) SyncCall(ctx *protocol.Context) error {
+	key := ctx.ServiceMethod
+	handler, ok := h.set[key]
+	if ok {
+		// sync
+		h.preHandler.Call(ctx)
+		handler(ctx)
+		return nil
+	}
+	return NotFoundMethod
+}
+
+// 异步
+func (h *HandlerSet) AsyncCall(ctx *protocol.Context) error {
+	key := ctx.ServiceMethod
+	asHandler, ok := h.asyncSet[key]
+	if ok {
+		// async
+		h.preHandler.Call(ctx)
+		asHandler(ctx, struct{}{})
+		return nil
+	}
+	return NotFoundMethod
 }
 func (h *HandlerSet) Call(ctx *protocol.Context, gPool *ants.Pool) error {
 	var err error

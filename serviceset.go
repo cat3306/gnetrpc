@@ -3,10 +3,13 @@ package gnetrpc
 import (
 	"errors"
 	"fmt"
+	"reflect"
+	"runtime/debug"
+
 	"github.com/cat3306/gnetrpc/protocol"
 	"github.com/cat3306/gnetrpc/rpclog"
+	"github.com/cat3306/gnetrpc/util"
 	"github.com/panjf2000/ants/v2"
-	"reflect"
 )
 
 type ServiceSet struct {
@@ -118,31 +121,58 @@ func (s *ServiceSet) Register(v IService, isPrint bool) {
 	s.set[tmpService.name] = tmpService
 
 }
-func (s *ServiceSet) Call(ctx *protocol.Context) error {
 
+// 同步
+func (s *ServiceSet) SyncCall(ctx *protocol.Context) error {
 	servicePath := ctx.ServicePath
 	method := ctx.ServiceMethod
 	tmpService := s.set[servicePath]
 	if tmpService == nil {
 		return NotFoundService
 	}
-	err := tmpService.handlerSet.Call(ctx, s.gPool)
+	err := tmpService.handlerSet.SyncCall(ctx)
 	if err == nil {
 		return nil
 	}
 	if err != nil && !errors.Is(err, NotFoundMethod) {
 		return err
 	}
-
-	var isAsync bool
 	mType := tmpService.method[method]
-	if mType == nil {
-		isAsync = true
-		mType = tmpService.asyncMethod[method]
-	}
 	if mType == nil {
 		return NotFoundMethod
 	}
+	return s.Call(ctx, tmpService, mType, false)
+}
+
+// 异步
+func (s *ServiceSet) AsyncCall(ctx *protocol.Context) error {
+	servicePath := ctx.ServicePath
+	method := ctx.ServiceMethod
+	tmpService := s.set[servicePath]
+	if tmpService == nil {
+		return NotFoundService
+	}
+	err := tmpService.handlerSet.AsyncCall(ctx)
+	if err == nil {
+		return nil
+	}
+	if err != nil && !errors.Is(err, NotFoundMethod) {
+		return err
+	}
+	mType := tmpService.asyncMethod[method]
+	if mType == nil {
+		return NotFoundMethod
+	}
+	return s.Call(ctx, tmpService, mType, true)
+}
+func (s *ServiceSet) Call(ctx *protocol.Context, tmpService *Service, mType *methodType, isAsync bool) error {
+	defer func() {
+		if r := recover(); r != nil {
+			msg := debug.Stack()
+			err := fmt.Errorf("[server call internal error] service: %s, method: %s, stack: %s,err:%s", ctx.ServicePath, ctx.ServiceMethod, util.BytesToString(msg), r)
+			rpclog.Error(err)
+		}
+	}()
 	codec := protocol.GetCodec(protocol.SerializeType(ctx.H.SerializeType))
 	if codec == nil {
 		return errors.New("invalid serialize type")
@@ -189,15 +219,5 @@ func (s *ServiceSet) Call(ctx *protocol.Context) error {
 		//rpclog.Infof("args %s", string(data))
 		return nil
 	}
-	if isAsync {
-		err := s.gPool.Submit(func() {
-			err := f()
-			if err != nil {
-				rpclog.Errorf("call async %s", err.Error())
-			}
-		})
-		return err
-	}
-
 	return f()
 }

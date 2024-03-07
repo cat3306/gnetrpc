@@ -2,10 +2,9 @@ package gnetrpc
 
 import (
 	"context"
-	"fmt"
+	"errors"
 	"os"
 	"os/signal"
-	"runtime/debug"
 	"syscall"
 	"time"
 
@@ -54,7 +53,7 @@ func (s *Server) mainGoroutine() {
 	for {
 		select {
 		case ctx := <-s.mainCtxChan:
-			s.process(ctx)
+			s.serviceSet.SyncCall(ctx)
 		case <-s.shutdownCtx.Done():
 
 			rpclog.Infof("mainGoroutine shutdown")
@@ -64,20 +63,17 @@ func (s *Server) mainGoroutine() {
 }
 
 func (s *Server) process(ctx *protocol.Context) {
-	defer func() {
-		if r := recover(); r != nil {
-			msg := debug.Stack()
-			err := fmt.Errorf("[server call internal error] service: %s, method: %s, stack: %s,err:%s", ctx.ServicePath, ctx.ServiceMethod, util.BytesToString(msg), r)
-			rpclog.Error(err)
-		}
-	}()
+
 	servicePath := ctx.ServicePath
 	method := ctx.ServiceMethod
-	err := s.serviceSet.Call(ctx)
+	err := s.serviceSet.AsyncCall(ctx)
 	if err != nil {
+		if errors.Is(err, NotFoundMethod) {
+			s.mainCtxChan <- ctx
+			return
+		}
 		rpclog.Errorf("process err:%s,service:%s, method:%s", err.Error(), servicePath, method)
 	}
-
 }
 func (s *Server) OnBoot(engine gnet.Engine) (action gnet.Action) {
 	s.eng = engine
@@ -140,7 +136,7 @@ func (s *Server) OnTraffic(c gnet.Conn) (action gnet.Action) {
 	}
 	ctx.GPool = s.gPool
 	ctx.ConnMatrix = s.connMatrix
-	s.mainCtxChan <- ctx
+	s.process(ctx)
 	return
 }
 func (s *Server) Register(is ...IService) {
