@@ -22,11 +22,11 @@ func main() {
 	}
 	thirdmodule.Init()
 	s := gnetrpc.NewServer(
-		gnetrpc.WithMulticore(true),
 		gnetrpc.WithPrintRegisteredMethod(),
 		gnetrpc.WithDefaultService(),
 		gnetrpc.WithMainGoroutineChannelCap(10000),
 		//gnetrpc.WithReusePort(true),
+		gnetrpc.WithNumEventLoop(512),
 	)
 	// s.UseAuthFunc(func(ctx *protocol.Context, token string) error {
 	// 	if token != "" {
