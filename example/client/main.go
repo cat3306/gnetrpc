@@ -74,7 +74,7 @@ func singleClient() {
 	HeartBeat(client)
 }
 func main() {
-	multiClient(2000)
+	multiClient(1)
 	//singleClient()
 }
 
@@ -139,15 +139,13 @@ func EmailCode(client *gnetrpc.Client) {
 	time.Sleep(time.Second * 10)
 }
 func HeartBeat(client *gnetrpc.Client) {
-	i := 0
-	for {
-		i += 2
+
+	for i := 0; i < 10; i++ {
 		err := client.Call("Builtin", "Heartbeat", map[string]string{
 			share.AuthKey: "鸳鸯擦，鸳鸯体，你爱我，我爱你",
 		}, protocol.String, "💓:"+strconv.Itoa(i))
 		if err != nil {
 			break
 		}
-		time.Sleep(time.Millisecond * 200)
 	}
 }

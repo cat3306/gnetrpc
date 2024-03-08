@@ -1,4 +1,5 @@
 example/client/client
+example/client2/client2
 example/server/server
 example/gameserver/gameserver
 tool/rpctool/rpctool

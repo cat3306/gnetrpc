@@ -94,7 +94,7 @@ func (c *Client) OnBoot(e gnet.Engine) (action gnet.Action) {
 func (c *Client) OnShutdown(e gnet.Engine) {
 }
 func (c *Client) OnOpen(conn gnet.Conn) ([]byte, gnet.Action) {
-	rpclog.Info("client connected,id:", conn.Fd())
+	//rpclog.Info("client connected,id:", conn.Fd())
 	c.pluginContainer.DoDo(PluginTypeOnOpen, c.conn)
 	return nil, gnet.None
 }
@@ -112,11 +112,14 @@ func (c *Client) CtxChan() <-chan *protocol.Context {
 	return c.mainCtxChan
 }
 func (c *Client) OnTraffic(conn gnet.Conn) (action gnet.Action) {
-	ctx, err := protocol.Decode(conn)
-	if err != nil {
-		return
+	for {
+		ctx, err := protocol.Decode(conn)
+		if err != nil {
+			break
+		}
+		c.mainCtxChan <- ctx
 	}
-	c.mainCtxChan <- ctx
+
 	return gnet.None
 }
 func (c *Client) OnTick() (delay time.Duration, action gnet.Action) {
@@ -124,7 +127,7 @@ func (c *Client) OnTick() (delay time.Duration, action gnet.Action) {
 }
 func (c *Client) Register(is ...IService) *Client {
 	for _, v := range is {
-		c.handlerSet.Register(v, true)
+		c.handlerSet.Register(v, false)
 	}
 	return c
 }

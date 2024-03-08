@@ -3,7 +3,6 @@ package protocol
 import (
 	"encoding/binary"
 	"errors"
-	"os"
 	"strings"
 
 	"github.com/cat3306/gnetrpc/rpclog"
@@ -33,10 +32,7 @@ var (
 
 func Decode(c gnet.Conn) (*Context, error) {
 	fixedLen := headerLen + msgSeqLen + pathMethodLen + metaDataLen + payloadLen
-	fixedBuffer, err := c.Peek(int(fixedLen))
-	if err != nil {
-		return nil, err
-	}
+	fixedBuffer, _ := c.Peek(int(fixedLen))
 	if len(fixedBuffer) < int(fixedLen) {
 		return nil, ErrIncompletePacket
 	}
@@ -105,10 +101,6 @@ func Decode(c gnet.Conn) (*Context, error) {
 	err = ctx.H.Check()
 	if err != nil {
 		return nil, err
-	}
-	if method != "Heartbeat" {
-		rpclog.Errorf("ctx:=%+v", ctx)
-		os.Exit(0)
 	}
 	return ctx, nil
 }

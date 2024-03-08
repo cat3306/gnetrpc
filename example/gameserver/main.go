@@ -27,6 +27,8 @@ func main() {
 		gnetrpc.WithMainGoroutineChannelCap(10000),
 		//gnetrpc.WithReusePort(true),
 		gnetrpc.WithNumEventLoop(512),
+		gnetrpc.WithReadBufferCap(1024*1024),
+		gnetrpc.WithWriteBufferCap(1024*1024),
 	)
 	// s.UseAuthFunc(func(ctx *protocol.Context, token string) error {
 	// 	if token != "" {

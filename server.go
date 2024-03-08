@@ -53,7 +53,12 @@ func (s *Server) mainGoroutine() {
 	for {
 		select {
 		case ctx := <-s.mainCtxChan:
-			s.serviceSet.SyncCall(ctx)
+			servicePath := ctx.ServicePath
+			method := ctx.ServiceMethod
+			err := s.serviceSet.SyncCall(ctx)
+			if err != nil {
+				rpclog.Errorf("syncCall err:%s,service:%s, method:%s", err.Error(), servicePath, method)
+			}
 		case <-s.shutdownCtx.Done():
 
 			rpclog.Infof("mainGoroutine shutdown")
@@ -115,29 +120,30 @@ func (s *Server) OnClose(c gnet.Conn, err error) (action gnet.Action) {
 }
 
 func (s *Server) OnTraffic(c gnet.Conn) (action gnet.Action) {
-
-	ctx, err := protocol.Decode(c)
-	if err != nil {
-		rpclog.Warnf("OnTraffic err:%s", err.Error())
-		return gnet.None
-	}
-	s.pluginContainer.DoDo(PluginTypeOnTraffic, nil)
-	if s.authFunc != nil {
-		token := ctx.Metadata[share.AuthKey]
-		err = s.authFunc(ctx, token)
+	for {
+		ctx, err := protocol.Decode(c)
 		if err != nil {
-			rpclog.Errorf("auth failed for conn %s: %s", c.RemoteAddr().String(), err.Error())
-			err = c.Close("auth failed")
-			if err != nil {
-				rpclog.Errorf("conn close err:%s,%s", err.Error(), c.RemoteAddr().String())
-			}
-			return
+			//rpclog.Warnf("OnTraffic err:%s", err.Error())
+			break
 		}
+		s.pluginContainer.DoDo(PluginTypeOnTraffic, nil)
+		if s.authFunc != nil {
+			token := ctx.Metadata[share.AuthKey]
+			err = s.authFunc(ctx, token)
+			if err != nil {
+				rpclog.Errorf("auth failed for conn %s: %s", c.RemoteAddr().String(), err.Error())
+				err = c.Close("auth failed")
+				if err != nil {
+					rpclog.Errorf("conn close err:%s,%s", err.Error(), c.RemoteAddr().String())
+				}
+				return
+			}
+		}
+		ctx.GPool = s.gPool
+		ctx.ConnMatrix = s.connMatrix
+		s.process(ctx)
 	}
-	ctx.GPool = s.gPool
-	ctx.ConnMatrix = s.connMatrix
-	s.process(ctx)
-	return
+	return gnet.None
 }
 func (s *Server) Register(is ...IService) {
 	for _, v := range is {
