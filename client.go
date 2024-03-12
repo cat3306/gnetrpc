@@ -27,7 +27,7 @@ func NewClient(address string, network string, options ...OptionFn) *Client {
 	if c.option.mainGoroutineChannelCap == 0 {
 		c.option.mainGoroutineChannelCap = 1024
 	}
-	c.asyncMode = c.option.clientAsyncMode
+	c.syncMode = c.option.clientSyncMode
 	c.mainCtxChan = make(chan *protocol.Context, c.option.mainGoroutineChannelCap)
 	cli, err := gnet.NewClient(c, gnet.WithOptions(c.option.gnetOptions))
 	if err != nil {
@@ -47,7 +47,7 @@ type Client struct {
 	handlerSet      *HandlerSet
 	address         string
 	network         string
-	asyncMode       bool
+	syncMode        bool
 	conn            gnet.Conn
 	gPool           *goroutine.Pool
 }
@@ -74,7 +74,7 @@ func (c *Client) Run() (*Client, error) {
 	if err != nil {
 		return nil, err
 	}
-	if c.asyncMode {
+	if c.syncMode {
 		go c.MainGoroutine()
 	}
 	_ = c.gCli.Start()
@@ -109,6 +109,9 @@ func (c *Client) OnClose(conn gnet.Conn, err error) gnet.Action {
 	return gnet.None
 }
 func (c *Client) CtxChan() <-chan *protocol.Context {
+	if !c.syncMode {
+		panic("must be sync mode")
+	}
 	return c.mainCtxChan
 }
 func (c *Client) OnTraffic(conn gnet.Conn) (action gnet.Action) {
@@ -117,7 +120,11 @@ func (c *Client) OnTraffic(conn gnet.Conn) (action gnet.Action) {
 		if err != nil {
 			break
 		}
-		c.mainCtxChan <- ctx
+		if c.syncMode {
+			c.mainCtxChan <- ctx
+		} else {
+			c.process(ctx)
+		}
 	}
 
 	return gnet.None

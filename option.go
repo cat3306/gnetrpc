@@ -1,9 +1,10 @@
 package gnetrpc
 
 import (
+	"time"
+
 	"github.com/panjf2000/gnet/v2"
 	"github.com/panjf2000/gnet/v2/pkg/logging"
-	"time"
 )
 
 type OptionFn func(*serverOption)
@@ -28,9 +29,9 @@ func WithMainGoroutineChannelCap(cap int) OptionFn {
 		s.mainGoroutineChannelCap = cap
 	}
 }
-func WithClientAsyncMode() OptionFn {
+func WithClientSyncMode() OptionFn {
 	return func(s *serverOption) {
-		s.clientAsyncMode = true
+		s.clientSyncMode = true
 	}
 }
 func WithLockOSThread(lockOSThread bool) OptionFn {

@@ -29,7 +29,7 @@ func (b *Builtin) Benchmark(ctx *protocol.Context) {
 
 var (
 	concurrency = flag.Int("c", 10, "concurrency")
-	total       = flag.Int("n", 10000, "total requests for all clients")
+	total       = flag.Int("n", 50000, "total requests for all clients")
 	host        = flag.String("s", "127.0.0.1:7898", "server ip and port")
 	rate        = flag.Int("r", 0, "throughputs")
 	recvCnt     uint64
@@ -63,7 +63,7 @@ func main() {
 
 func singleClient(wg *sync.WaitGroup, m int) {
 	defer wg.Done()
-	client, err := gnetrpc.NewClient(*host, "tcp", gnetrpc.WithClientAsyncMode()).
+	client, err := gnetrpc.NewClient(*host, "tcp").
 		Register(
 			new(Builtin),
 		).Run()

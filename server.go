@@ -23,7 +23,7 @@ type serverOption struct {
 	printMethod             bool
 	defaultService          bool
 	mainGoroutineChannelCap int
-	clientAsyncMode         bool //client
+	clientSyncMode          bool //client
 	gnetOptions             gnet.Options
 	antOption               ants.Options
 }

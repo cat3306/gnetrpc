@@ -74,7 +74,7 @@ func multiClient(num int) {
 	select {}
 }
 func singleClient() {
-	client, err := gnetrpc.NewClient("127.0.0.1:7898", "tcp", gnetrpc.WithClientAsyncMode()).
+	client, err := gnetrpc.NewClient("127.0.0.1:7898", "tcp").
 		Register(
 			new(Builtin),
 			new(Account),
