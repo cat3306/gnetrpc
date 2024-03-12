@@ -68,7 +68,7 @@ func (g *GameMgr) GlobalChat(ctx *protocol.Context) {
 func multiClient(num int) {
 	for i := 0; i < num; i++ {
 		go singleClient()
-		time.Sleep(time.Duration(rand.Intn(100)) * time.Millisecond)
+		time.Sleep(time.Duration(rand.Intn(50)) * time.Millisecond)
 	}
 	fmt.Println("done")
 	select {}
@@ -87,7 +87,7 @@ func singleClient() {
 	GlobalChat(client)
 }
 func main() {
-	multiClient(2)
+	multiClient(500)
 	//singleClient()
 }
 
@@ -165,13 +165,13 @@ func HeartBeat(client *gnetrpc.Client) {
 
 func GlobalChat(client *gnetrpc.Client) {
 
-	for i := 0; i < 10000; i++ {
+	for i := 0; i < 100; i++ {
 		err := client.Call("GameMgr", "GlobalChat", map[string]string{
 			share.AuthKey: "鸳鸯擦，鸳鸯体，你爱我，我爱你",
 		}, protocol.String, "💓:"+strconv.Itoa(i))
 		if err != nil {
 			break
 		}
-		time.Sleep(time.Second)
+		time.Sleep(time.Microsecond * 10)
 	}
 }

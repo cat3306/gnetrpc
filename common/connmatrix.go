@@ -65,33 +65,24 @@ func (c *ConnMatrix) Remove(id string) {
 //		}
 //	}
 func (c *ConnMatrix) Broadcast(buffer *bytebufferpool.ByteBuffer) {
-	wg := sync.WaitGroup{}
-	wg.Add(int(atomic.LoadInt64(&c.cnt)))
 	var err error
 	if c.async {
 		c.asyncMap.Range(func(key, value any) bool {
 			conn := value.(gnet.Conn)
-			err = conn.AsyncWrite(buffer.Bytes(), func(c gnet.Conn, err error) error {
-				wg.Done()
-				return nil
-			})
+			_, err = conn.Write(buffer.Bytes())
 			if err != nil {
 				rpclog.Errorf("Broadcast err:%s", err.Error())
 			}
 			return true
 		})
 	} else {
-		for _, v := range c.connMap {
-			err = v.AsyncWrite(buffer.Bytes(), func(c gnet.Conn, err error) error {
-				wg.Done()
-				return nil
-			})
+		for _, conn := range c.connMap {
+			_, err = conn.Write(buffer.Bytes())
 			if err != nil {
 				rpclog.Errorf("Broadcast err:%s", err.Error())
 			}
 		}
 	}
-	wg.Wait()
 	bytebufferpool.Put(buffer)
 }
 func (c *ConnMatrix) Len() int {
@@ -102,8 +93,6 @@ func (c *ConnMatrix) Len() int {
 	}
 }
 func (c *ConnMatrix) BroadcastExceptOne(buffer *bytebufferpool.ByteBuffer, id string) {
-	wg := sync.WaitGroup{}
-	wg.Add(int(atomic.LoadInt64(&c.cnt)))
 	var err error
 	if c.async {
 		c.asyncMap.Range(func(key, value any) bool {
@@ -112,10 +101,7 @@ func (c *ConnMatrix) BroadcastExceptOne(buffer *bytebufferpool.ByteBuffer, id st
 			if idKey == id {
 				return true
 			}
-			err = conn.AsyncWrite(buffer.Bytes(), func(c gnet.Conn, err error) error {
-				wg.Done()
-				return nil
-			})
+			_, err = conn.Write(buffer.Bytes())
 			if err != nil {
 				rpclog.Errorf("Broadcast err:%s", err.Error())
 			}
@@ -126,16 +112,12 @@ func (c *ConnMatrix) BroadcastExceptOne(buffer *bytebufferpool.ByteBuffer, id st
 			if k == id {
 				continue
 			}
-			err = v.AsyncWrite(buffer.Bytes(), func(c gnet.Conn, err error) error {
-				wg.Done()
-				return nil
-			})
+			_, err = v.Write(buffer.Bytes())
 			if err != nil {
 				rpclog.Errorf("Broadcast err:%s", err.Error())
 			}
 		}
 	}
-	wg.Wait()
 	bytebufferpool.Put(buffer)
 }
 func (c *ConnMatrix) SendToConn(buffer *bytebufferpool.ByteBuffer, conn gnet.Conn) {
