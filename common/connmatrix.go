@@ -2,6 +2,7 @@ package common
 
 import (
 	"sync"
+	"sync/atomic"
 
 	"github.com/cat3306/gnetrpc/rpclog"
 	"github.com/valyala/bytebufferpool"
@@ -10,101 +11,128 @@ import (
 )
 
 type ConnMatrix struct {
-	locker  sync.RWMutex
-	sync    bool //sync if true use sync.RWMutex
-	connMap map[string]gnet.Conn
+	async    bool //async if true use sync.RWMutex
+	connMap  map[string]gnet.Conn
+	asyncMap sync.Map
+	cnt      int64
 }
 
-func NewConnMatrix(syncMode bool) *ConnMatrix {
-	return &ConnMatrix{
+// false:sync true:async
+func NewConnMatrix(async bool) *ConnMatrix {
+	matrix := ConnMatrix{
 		connMap: make(map[string]gnet.Conn),
-		sync:    syncMode,
+		async:   async,
 	}
+	if !async {
+		matrix.connMap = make(map[string]gnet.Conn)
+	}
+	return &matrix
 }
-func (c *ConnMatrix) SetSync(sync bool) {
-	c.sync = sync
-	return
+func (c *ConnMatrix) SetAsync(async bool) {
+	c.async = async
 }
 
 func (c *ConnMatrix) Add(conn gnet.Conn) {
-	if c.sync {
-		c.locker.Lock()
-		defer c.locker.Unlock()
+	if c.async {
+		c.asyncMap.Store(conn.Id(), conn)
+		atomic.AddInt64(&c.cnt, 1)
+	} else {
+		c.connMap[conn.Id()] = conn
 	}
-	c.connMap[conn.Id()] = conn
+
 }
 func (c *ConnMatrix) Remove(id string) {
-	if c.sync {
-		c.locker.Lock()
-		defer c.locker.Unlock()
+	if c.async {
+		atomic.AddInt64(&c.cnt, -1)
+		c.asyncMap.Delete(id)
+	} else {
+		delete(c.connMap, id)
 	}
-	delete(c.connMap, id)
+
 }
-func (c *ConnMatrix) RemoveAll(msg string) {
-	if c.sync {
-		c.locker.Lock()
-		defer c.locker.Unlock()
-	}
-	for k, v := range c.connMap {
-		v.Close(msg)
-		delete(c.connMap, k)
-	}
-}
+
+//	func (c *ConnMatrix) RemoveAll(msg string) {
+//		if c.sync {
+//			c.locker.Lock()
+//			defer c.locker.Unlock()
+//		}
+//		if c.async{
+//			c.asyncMap.
+//		}
+//		for k, v := range c.connMap {
+//			v.Close(msg)
+//			delete(c.connMap, k)
+//		}
+//	}
 func (c *ConnMatrix) Broadcast(buffer *bytebufferpool.ByteBuffer) {
-	if c.sync {
-		c.locker.RLock()
-	}
-	tmpList := make([]gnet.Conn, 0, len(c.connMap))
-	for _, v := range c.connMap {
-		tmpList = append(tmpList, v)
-	}
-	if c.sync {
-		c.locker.RUnlock()
-	}
 	wg := sync.WaitGroup{}
-	wg.Add(len(tmpList))
-	for _, v := range tmpList {
-		err := v.AsyncWrite(buffer.Bytes(), func(c gnet.Conn, err error) error {
-			wg.Done()
-			return nil
+	wg.Add(int(atomic.LoadInt64(&c.cnt)))
+	var err error
+	if c.async {
+		c.asyncMap.Range(func(key, value any) bool {
+			conn := value.(gnet.Conn)
+			err = conn.AsyncWrite(buffer.Bytes(), func(c gnet.Conn, err error) error {
+				wg.Done()
+				return nil
+			})
+			if err != nil {
+				rpclog.Errorf("Broadcast err:%s", err.Error())
+			}
+			return true
 		})
-		if err != nil {
-			rpclog.Errorf("Broadcast err:%s", err.Error())
+	} else {
+		for _, v := range c.connMap {
+			err = v.AsyncWrite(buffer.Bytes(), func(c gnet.Conn, err error) error {
+				wg.Done()
+				return nil
+			})
+			if err != nil {
+				rpclog.Errorf("Broadcast err:%s", err.Error())
+			}
 		}
 	}
 	wg.Wait()
 	bytebufferpool.Put(buffer)
 }
 func (c *ConnMatrix) Len() int {
-	if c.sync {
-		c.locker.RLock()
-		defer c.locker.RUnlock()
+	if c.async {
+		return int(atomic.LoadInt64(&c.cnt))
+	} else {
+		return len(c.connMap)
 	}
-	return len(c.connMap)
 }
 func (c *ConnMatrix) BroadcastExceptOne(buffer *bytebufferpool.ByteBuffer, id string) {
-	if c.sync {
-		c.locker.RLock()
-	}
-	tmpList := make([]gnet.Conn, 0, len(c.connMap))
-	for _, v := range c.connMap {
-		if v.Id() == id {
-			continue
-		}
-		tmpList = append(tmpList, v)
-	}
-	if c.sync {
-		c.locker.RUnlock()
-	}
 	wg := sync.WaitGroup{}
-	wg.Add(len(tmpList))
-	for _, v := range tmpList {
-		err := v.AsyncWrite(buffer.Bytes(), func(c gnet.Conn, err error) error {
-			wg.Done()
-			return nil
+	wg.Add(int(atomic.LoadInt64(&c.cnt)))
+	var err error
+	if c.async {
+		c.asyncMap.Range(func(key, value any) bool {
+			conn := value.(gnet.Conn)
+			idKey := key.(string)
+			if idKey == id {
+				return true
+			}
+			err = conn.AsyncWrite(buffer.Bytes(), func(c gnet.Conn, err error) error {
+				wg.Done()
+				return nil
+			})
+			if err != nil {
+				rpclog.Errorf("Broadcast err:%s", err.Error())
+			}
+			return true
 		})
-		if err != nil {
-			rpclog.Errorf("Broadcast err:%s", err.Error())
+	} else {
+		for k, v := range c.connMap {
+			if k == id {
+				continue
+			}
+			err = v.AsyncWrite(buffer.Bytes(), func(c gnet.Conn, err error) error {
+				wg.Done()
+				return nil
+			})
+			if err != nil {
+				rpclog.Errorf("Broadcast err:%s", err.Error())
+			}
 		}
 	}
 	wg.Wait()
@@ -120,53 +148,44 @@ func (c *ConnMatrix) SendToConn(buffer *bytebufferpool.ByteBuffer, conn gnet.Con
 	}
 }
 func (c *ConnMatrix) SendToOne(buffer *bytebufferpool.ByteBuffer, id string) {
-	if c.sync {
-		c.locker.RLock()
-	}
-	conn, ok := c.connMap[id]
-	if c.sync {
-		c.locker.RUnlock()
-	}
-	if !ok {
-		rpclog.Errorf("not found conn,id:%d", id)
-		return
-	}
-	err := conn.AsyncWrite(buffer.Bytes(), func(c gnet.Conn, err error) error {
-		bytebufferpool.Put(buffer)
-		return nil
-	})
-	if err != nil {
-		rpclog.Errorf("conn.Write err:%s", err.Error())
+
+	if c.async {
+		v, ok := c.asyncMap.Load(id)
+		if !ok {
+			rpclog.Warnf("SendToOne not found conn id:%s", id)
+			return
+		}
+		conn := v.(gnet.Conn)
+		c.SendToConn(buffer, conn)
+	} else {
+		conn, ok := c.connMap[id]
+		if !ok {
+			rpclog.Warnf("SendToOne not found conn id:%s", id)
+			return
+		}
+		c.SendToConn(buffer, conn)
 	}
 }
 
 func (c *ConnMatrix) BroadcastSomeone(buffer *bytebufferpool.ByteBuffer, ids []string) {
-	tmpList := make([]gnet.Conn, 0, len(ids))
-	if c.sync {
-		c.locker.RLock()
-	}
-	for _, id := range ids {
-		conn, ok := c.connMap[id]
-		if ok {
-			tmpList = append(tmpList, conn)
-		} else {
-			rpclog.Warnf("SendToSome not found id:%s", id)
+	if c.async {
+		for _, id := range ids {
+			v, ok := c.asyncMap.Load(id)
+			if ok {
+				rpclog.Warnf("BroadcastSomeone not found conn id:%s", id)
+				continue
+			}
+			conn := v.(gnet.Conn)
+			c.SendToConn(buffer, conn)
+		}
+	} else {
+		for _, id := range ids {
+			conn, ok := c.connMap[id]
+			if ok {
+				rpclog.Warnf("BroadcastSomeone not found conn id:%s", id)
+				continue
+			}
+			c.SendToConn(buffer, conn)
 		}
 	}
-	if c.sync {
-		c.locker.RUnlock()
-	}
-	wg := sync.WaitGroup{}
-	wg.Add(len(tmpList))
-	for _, conn := range tmpList {
-		err := conn.AsyncWrite(buffer.Bytes(), func(c gnet.Conn, err error) error {
-			wg.Done()
-			return nil
-		})
-		if err != nil {
-			rpclog.Errorf("SendToSome Write err:%s", err.Error())
-		}
-	}
-	wg.Wait()
-	bytebufferpool.Put(buffer)
 }

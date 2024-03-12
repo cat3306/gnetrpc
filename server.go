@@ -92,7 +92,7 @@ func (s *Server) OnBoot(engine gnet.Engine) (action gnet.Action) {
 func (s *Server) OnShutdown(engine gnet.Engine) {
 	rpclog.Infof("gnetrpc shutdown")
 	s.pluginContainer.DoDo(PluginTypeOnShutdown, nil)
-	s.connMatrix.RemoveAll("gnetrpc shutdown")
+	//s.connMatrix.RemoveAll("gnetrpc shutdown")
 }
 
 func (s *Server) OnOpen(c gnet.Conn) (out []byte, action gnet.Action) {

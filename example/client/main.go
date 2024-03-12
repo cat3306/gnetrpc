@@ -53,6 +53,18 @@ func (a *Account) Register(ctx *protocol.Context) {
 func (a *Account) EmailCode(ctx *protocol.Context) {
 	rpclog.Info(ctx.Payload.String())
 }
+
+type GameMgr struct{}
+
+func (g *GameMgr) Alias() string {
+	return ""
+}
+func (g *GameMgr) Init(v ...interface{}) gnetrpc.IService {
+	return g
+}
+func (g *GameMgr) GlobalChat(ctx *protocol.Context) {
+	rpclog.Info(ctx.Payload.String()+":", ctx.Conn.Fd())
+}
 func multiClient(num int) {
 	for i := 0; i < num; i++ {
 		go singleClient()
@@ -66,15 +78,16 @@ func singleClient() {
 		Register(
 			new(Builtin),
 			new(Account),
+			new(GameMgr),
 		).Run()
 	if err != nil {
 		panic(err)
 	}
 
-	HeartBeat(client)
+	GlobalChat(client)
 }
 func main() {
-	multiClient(1)
+	multiClient(2)
 	//singleClient()
 }
 
@@ -147,5 +160,18 @@ func HeartBeat(client *gnetrpc.Client) {
 		if err != nil {
 			break
 		}
+	}
+}
+
+func GlobalChat(client *gnetrpc.Client) {
+
+	for i := 0; i < 10000; i++ {
+		err := client.Call("GameMgr", "GlobalChat", map[string]string{
+			share.AuthKey: "鸳鸯擦，鸳鸯体，你爱我，我爱你",
+		}, protocol.String, "💓:"+strconv.Itoa(i))
+		if err != nil {
+			break
+		}
+		time.Sleep(time.Second)
 	}
 }

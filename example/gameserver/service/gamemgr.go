@@ -22,3 +22,7 @@ func (r *GameMgr) ConnOnClose(ctx *protocol.Context) {
 		rpclog.Infof("ConnOnClose,err:%s", err.Error())
 	}
 }
+func (r *GameMgr) GlobalChat(ctx *protocol.Context, req *string, rsp *string) *gnetrpc.CallMode {
+	*rsp = *req
+	return gnetrpc.CallBroadcast()
+}
