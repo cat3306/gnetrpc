@@ -5,6 +5,7 @@ import (
 	"sync/atomic"
 
 	"github.com/cat3306/gnetrpc/rpclog"
+	"github.com/cat3306/gnetrpc/util"
 	"github.com/valyala/bytebufferpool"
 
 	"github.com/panjf2000/gnet/v2"
@@ -33,11 +34,12 @@ func (c *ConnMatrix) SetAsync(async bool) {
 }
 
 func (c *ConnMatrix) Add(conn gnet.Conn) {
+	id := util.GetConnId(conn)
 	if c.async {
-		c.asyncMap.Store(conn.Id(), conn)
+		c.asyncMap.Store(id, conn)
 		atomic.AddInt64(&c.cnt, 1)
 	} else {
-		c.connMap[conn.Id()] = conn
+		c.connMap[id] = conn
 	}
 
 }

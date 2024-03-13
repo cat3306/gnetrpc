@@ -96,13 +96,12 @@ func (s *Server) OnShutdown(engine gnet.Engine) {
 }
 
 func (s *Server) OnOpen(c gnet.Conn) (out []byte, action gnet.Action) {
-	c.SetId(util.GenConnId(c.Fd()))
 	s.connMatrix.Add(c)
 	plugins := s.pluginContainer.Plugins(PluginTypeOnOpen)
 	for _, v := range plugins {
 		ok := v.OnDo(c).(bool)
 		if !ok {
-			c.Close("plugin check failed")
+			c.Close()
 			return
 		}
 	}
@@ -110,7 +109,7 @@ func (s *Server) OnOpen(c gnet.Conn) (out []byte, action gnet.Action) {
 }
 
 func (s *Server) OnClose(c gnet.Conn, err error) (action gnet.Action) {
-	s.connMatrix.Remove(c.Id())
+	s.connMatrix.Remove(util.GetConnId(c))
 	reason := ""
 	if err != nil {
 		reason = err.Error()
@@ -132,7 +131,7 @@ func (s *Server) OnTraffic(c gnet.Conn) (action gnet.Action) {
 			err = s.authFunc(ctx, token)
 			if err != nil {
 				rpclog.Errorf("auth failed for conn %s: %s", c.RemoteAddr().String(), err.Error())
-				err = c.Close("auth failed")
+				err = c.Close()
 				if err != nil {
 					rpclog.Errorf("conn close err:%s,%s", err.Error(), c.RemoteAddr().String())
 				}
@@ -211,7 +210,7 @@ func NewServer(options ...OptionFn) *Server {
 		op(s.option)
 	}
 	if s.option.mainGoroutineChannelCap == 0 {
-		s.option.mainGoroutineChannelCap = 1024
+		s.option.mainGoroutineChannelCap = 10000
 	}
 	s.mainCtxChan = make(chan *protocol.Context, s.option.mainGoroutineChannelCap)
 	if s.option.defaultService {

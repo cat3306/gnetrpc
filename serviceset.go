@@ -210,7 +210,7 @@ func (s *ServiceSet) Call(ctx *protocol.Context, tmpService *Service, mType *met
 			ctx.ConnMatrix.Broadcast(buffer)
 		case BroadcastExceptSelf:
 			buffer := protocol.Encode(ctx, replyv)
-			ctx.ConnMatrix.BroadcastExceptOne(buffer, ctx.Conn.Id())
+			ctx.ConnMatrix.BroadcastExceptOne(buffer, util.GetConnId(ctx.Conn))
 		case BroadcastSomeone:
 			buffer := protocol.Encode(ctx, replyv)
 			ctx.ConnMatrix.BroadcastSomeone(buffer, callModel.Ids)

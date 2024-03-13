@@ -8,7 +8,7 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"github.com/lithammer/shortuuid/v4"
+	"github.com/panjf2000/gnet/v2"
 )
 
 func IsExported(name string) bool {
@@ -19,11 +19,9 @@ func IsExported(name string) bool {
 func JoinServiceMethod(s, m string) string {
 	return s + "@" + m
 }
-
-func GenConnId(fd int) string {
-	return fmt.Sprintf("%s@%d", shortuuid.New(), fd)
+func GetConnId(conn gnet.Conn) string {
+	return fmt.Sprintf("%s@%d", conn.RemoteAddr().String(), conn.Fd())
 }
-
 func GoroutineID() int {
 	var buf [64]byte
 	n := runtime.Stack(buf[:], false)
