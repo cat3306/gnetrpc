@@ -1,6 +1,8 @@
 package service
 
 import (
+	"errors"
+
 	"github.com/cat3306/gnetrpc"
 	"github.com/cat3306/gnetrpc/protocol"
 	"github.com/cat3306/gnetrpc/rpclog"
@@ -17,7 +19,7 @@ func (c *ClosePlugin) Type() gnetrpc.PluginType {
 func (c *ClosePlugin) Init(args ...interface{}) gnetrpc.Plugin {
 	return c
 }
-func (c *ClosePlugin) OnDo(args ...interface{}) interface{} {
+func (c *ClosePlugin) OnDo(args ...interface{}) error {
 	conn := args[0].(gnet.Conn)
 	rpclog.Warnf("client close id:%s,cause:%v", util.GetConnId(conn), args[1])
 	var (
@@ -32,10 +34,10 @@ func (c *ClosePlugin) OnDo(args ...interface{}) interface{} {
 	}
 	if ctxChan == nil {
 		rpclog.Errorf("args not found ctxChan")
-		return true
+		return errors.New("args not found ctxChan")
 	}
 	c.doConnClose(ctxChan, conn)
-	return true
+	return nil
 }
 func (c *ClosePlugin) doConnClose(ctxChan chan *protocol.Context, conn gnet.Conn) {
 	ctx := protocol.GetCtx()

@@ -16,11 +16,11 @@ func (c *ConnectPlugin) Init(args ...interface{}) gnetrpc.Plugin {
 func (c *ConnectPlugin) Type() gnetrpc.PluginType {
 	return gnetrpc.PluginTypeOnOpen
 }
-func (c *ConnectPlugin) OnDo(args ...interface{}) interface{} {
+func (c *ConnectPlugin) OnDo(args ...interface{}) error {
 	if len(args) == 0 {
-		return false
+		return nil
 	}
 	conn := args[0].(gnet.Conn)
 	rpclog.Infof("client connect id:%s", util.GetConnId(conn))
-	return true
+	return nil
 }

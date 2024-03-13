@@ -97,13 +97,9 @@ func (s *Server) OnShutdown(engine gnet.Engine) {
 
 func (s *Server) OnOpen(c gnet.Conn) (out []byte, action gnet.Action) {
 	s.connMatrix.Add(c)
-	plugins := s.pluginContainer.Plugins(PluginTypeOnOpen)
-	for _, v := range plugins {
-		ok := v.OnDo(c).(bool)
-		if !ok {
-			c.Close()
-			return
-		}
+	errs := s.pluginContainer.DoDo(PluginTypeOnOpen, c)
+	for _, err := range errs {
+		rpclog.Errorf("plugin err:%s", err.Error())
 	}
 	return
 }

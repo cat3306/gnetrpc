@@ -14,7 +14,7 @@ func (s *ShutdownPlugin) Type() gnetrpc.PluginType {
 func (s *ShutdownPlugin) Init(args ...interface{}) gnetrpc.Plugin {
 	return s
 }
-func (s *ShutdownPlugin) OnDo(args ...interface{}) interface{} {
+func (s *ShutdownPlugin) OnDo(args ...interface{}) error {
 	rpclog.Infof("game shutdown")
-	return true
+	return nil
 }

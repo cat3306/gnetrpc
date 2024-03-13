@@ -16,11 +16,11 @@ func (c *ClosePlugin) Type() gnetrpc.PluginType {
 func (c *ClosePlugin) Init(args ...interface{}) gnetrpc.Plugin {
 	return c
 }
-func (c *ClosePlugin) OnDo(args ...interface{}) interface{} {
+func (c *ClosePlugin) OnDo(args ...interface{}) error {
 	if len(args) == 0 {
-		return false
+		return nil
 	}
 	conn := args[0].(gnet.Conn)
 	rpclog.Warnf("client close id:%s,cause:%v", util.GetConnId(conn), args[1])
-	return true
+	return nil
 }

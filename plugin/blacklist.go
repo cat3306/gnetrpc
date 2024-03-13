@@ -1,6 +1,7 @@
 package plugin
 
 import (
+	"errors"
 	"net"
 
 	"github.com/cat3306/gnetrpc"
@@ -29,25 +30,18 @@ func (b *BlacklistPlugin) Type() gnetrpc.PluginType {
 func (b *BlacklistPlugin) Init(args ...interface{}) gnetrpc.Plugin {
 	return b
 }
-func (b *BlacklistPlugin) OnDo(args ...interface{}) interface{} {
+func (b *BlacklistPlugin) OnDo(args ...interface{}) error {
 	if len(args) == 0 {
-		return false
+		return nil
 	}
 	conn := args[0].(gnet.Conn)
 	ip, _, err := net.SplitHostPort(conn.RemoteAddr().String())
 	if err != nil {
-		return true
+		return err
 	}
 	if b.blacklist[ip] {
 		rpclog.Errorf("%s in black list refused service", conn.RemoteAddr().String())
-		return false
+		return errors.New("in black list")
 	}
-
-	remoteIP := net.ParseIP(ip)
-	for _, mask := range b.BlacklistMask {
-		if mask.Contains(remoteIP) {
-			return false
-		}
-	}
-	return true
+	return nil
 }

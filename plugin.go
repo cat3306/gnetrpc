@@ -15,12 +15,15 @@ type pluginContainer struct {
 	plugins map[PluginType][]Plugin
 }
 
-func (p *pluginContainer) DoDo(t PluginType, v ...interface{}) []interface{} {
+func (p *pluginContainer) DoDo(t PluginType, v ...interface{}) []error {
 
 	list := p.plugins[t]
-	rsp := make([]interface{}, 0, len(list))
+	rsp := make([]error, 0)
 	for _, plugin := range list {
-		rsp = append(rsp, plugin.OnDo(v...))
+		err := plugin.OnDo(v...)
+		if err != nil {
+			rsp = append(rsp, err)
+		}
 	}
 	return rsp
 }
@@ -37,7 +40,7 @@ func (p *pluginContainer) Add(t PluginType, plugin Plugin) {
 }
 
 type Plugin interface {
-	OnDo(v ...interface{}) interface{}
+	OnDo(v ...interface{}) error
 	Type() PluginType
 	Init(v ...interface{}) Plugin
 }

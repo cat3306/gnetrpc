@@ -1,6 +1,0 @@
-syntax = "proto3";
-package protocol;
-option go_package = "./";
-message MetaData {
-  map<string, string> data = 1;
-}
