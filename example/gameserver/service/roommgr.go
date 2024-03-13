@@ -7,6 +7,7 @@ import (
 	"github.com/cat3306/gnetrpc/common"
 	"github.com/cat3306/gnetrpc/example/gameserver/util"
 	"github.com/cat3306/gnetrpc/protocol"
+	rpcutil "github.com/cat3306/gnetrpc/util"
 	"github.com/panjf2000/gnet/v2"
 )
 
@@ -49,11 +50,11 @@ func (r *RoomMgr) GetRoom(id string) (*Room, bool) {
 
 // {"pwd":"123","max_num":10,"join_state":true}
 func (r *RoomMgr) Create(ctx *protocol.Context, req *CreateRoomReq, rsp *ApiRsp) *gnetrpc.CallMode {
-	_, exists := ctx.Conn.GetProperty(RoomIdKey)
-	if exists {
-		rsp.Err("already in room")
-		return gnetrpc.CallSelf()
-	}
+	// _, exists := ctx.Conn.GetProperty(RoomIdKey)
+	// if exists {
+	// 	rsp.Err("already in room")
+	// 	return gnetrpc.CallSelf()
+	// }
 	id := util.GenId(6)
 	room := &Room{
 		maxNum:     req.MaxNum,
@@ -67,20 +68,18 @@ func (r *RoomMgr) Create(ctx *protocol.Context, req *CreateRoomReq, rsp *ApiRsp)
 	room.connMatrix.Add(ctx.Conn)
 	r.AddRoom(room)
 	rsp.Ok(id)
-	ctx.Conn.SetProperty(RoomIdKey, id)
+	//ctx.Conn.SetProperty(RoomIdKey, id)
 	return gnetrpc.CallBroadcast()
 }
 
 func (r *RoomMgr) ConnOnClose(conn gnet.Conn) error {
-	roomId, exists := conn.GetProperty(RoomIdKey)
-	if !exists {
-		return errors.New("not join room yet")
-	}
-	room, ok := r.GetRoom(roomId.(string))
+	roomId := ""
+	room, ok := r.GetRoom(roomId)
 	if !ok {
 		return errors.New("not found room")
 	}
-	room.connMatrix.Remove(conn.Id())
+
+	room.connMatrix.Remove("")
 	if room.connMatrix.Len() == 0 {
 		r.DelRoom(room.id)
 	} else {
@@ -93,23 +92,24 @@ func (r *RoomMgr) ConnOnClose(conn gnet.Conn) error {
 	return nil
 }
 func (r *RoomMgr) Leave(ctx *protocol.Context, req *struct{}, rsp *ApiRsp) *gnetrpc.CallMode {
-	roomId, exists := ctx.Conn.GetProperty(RoomIdKey)
-	if !exists {
-		rsp.Err("not join room yet")
-		return gnetrpc.CallSelf()
-	}
-	room, ok := r.GetRoom(roomId.(string))
+	//roomId, exists := ctx.Conn.GetProperty(RoomIdKey)
+	// if !exists {
+	// 	rsp.Err("not join room yet")
+	// 	return gnetrpc.CallSelf()
+	// }
+	roomId := ""
+	room, ok := r.GetRoom(roomId)
 	if !ok {
 		rsp.Err("not found room")
 		return gnetrpc.CallSelf()
 	}
-	room.connMatrix.Remove(ctx.Conn.Id())
+	room.connMatrix.Remove("")
 	if room.connMatrix.Len() == 0 {
 		r.DelRoom(room.id)
 	} else {
 		room.connMatrix.Broadcast(protocol.Encode(ctx, rsp.Ok("leave")))
 	}
-	ctx.Conn.DelProperty(RoomIdKey)
+	//ctx.Conn.DelProperty(RoomIdKey)
 	rsp.Ok(nil)
 	return gnetrpc.CallNone()
 }
@@ -137,17 +137,17 @@ func (r *RoomMgr) RoomsInfo(ctx *protocol.Context, req *struct{}, rsp *ApiRsp) *
 
 func (r *RoomMgr) Join(ctx *protocol.Context, id *string, rsp *ApiRsp) *gnetrpc.CallMode {
 	ctx.H.SerializeType = byte(protocol.Json)
-	_, exists := ctx.Conn.GetProperty(RoomIdKey)
-	if exists {
-		rsp.Err("already in room")
-		return gnetrpc.CallSelf()
-	}
+	// _, exists := ctx.Conn.GetProperty(RoomIdKey)
+	// if exists {
+	// 	rsp.Err("already in room")
+	// 	return gnetrpc.CallSelf()
+	// }
 	room, ok := r.GetRoom(*id)
 	if !ok {
 		return gnetrpc.CallSelf()
 	}
 	room.connMatrix.Add(ctx.Conn)
-	ctx.Conn.SetProperty(RoomIdKey, *id)
+	//ctx.Conn.SetProperty(RoomIdKey, *id)
 	rsp.Ok(nil)
 	room.connMatrix.Broadcast(protocol.Encode(ctx, rsp))
 	return gnetrpc.CallNone()
@@ -155,19 +155,19 @@ func (r *RoomMgr) Join(ctx *protocol.Context, id *string, rsp *ApiRsp) *gnetrpc.
 
 func (r *RoomMgr) Chat(ctx *protocol.Context, txt *string, rsp *ApiRsp) *gnetrpc.CallMode {
 	ctx.H.SerializeType = byte(protocol.Json)
-	v, ok := ctx.Conn.GetProperty(RoomIdKey)
-	if !ok {
-		rsp.Err("not join room")
-		return gnetrpc.CallNone()
-	}
-	roomId := v.(string)
+	// v, ok := ctx.Conn.GetProperty(RoomIdKey)
+	// if !ok {
+	// 	rsp.Err("not join room")
+	// 	return gnetrpc.CallNone()
+	// }
+	roomId := ""
 	room, ok := r.GetRoom(roomId)
 	if !ok {
 		rsp.Err("not found room")
 		return gnetrpc.CallSelf()
 	}
 	rsp.Ok(txt)
-	room.connMatrix.BroadcastExceptOne(protocol.Encode(ctx, rsp), ctx.Conn.Id())
+	room.connMatrix.BroadcastExceptOne(protocol.Encode(ctx, rsp), rpcutil.GetConnId(ctx.Conn))
 	return gnetrpc.CallNone()
 }
 

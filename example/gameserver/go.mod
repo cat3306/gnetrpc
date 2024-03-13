@@ -25,8 +25,7 @@ require (
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/jinzhu/now v1.1.5 // indirect
 	github.com/kr/text v0.2.0 // indirect
-	github.com/lithammer/shortuuid/v4 v4.0.0 // indirect
-	github.com/panjf2000/ants/v2 v2.8.2 // indirect
+	github.com/panjf2000/ants/v2 v2.9.0 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	go.etcd.io/etcd/api/v3 v3.5.9 // indirect
 	go.etcd.io/etcd/client/pkg/v3 v3.5.9 // indirect
@@ -35,8 +34,8 @@ require (
 	go.uber.org/multierr v1.9.0 // indirect
 	go.uber.org/zap v1.24.0 // indirect
 	golang.org/x/net v0.17.0 // indirect
-	golang.org/x/sync v0.3.0 // indirect
-	golang.org/x/sys v0.13.0 // indirect
+	golang.org/x/sync v0.6.0 // indirect
+	golang.org/x/sys v0.16.0 // indirect
 	golang.org/x/text v0.13.0 // indirect
 	google.golang.org/genproto v0.0.0-20230303212802-e74f57abe488 // indirect
 	google.golang.org/grpc v1.53.0 // indirect
@@ -46,5 +45,3 @@ require (
 )
 
 replace github.com/cat3306/gnetrpc => ../../../gnetrpc
-
-replace github.com/panjf2000/gnet/v2 => github.com/cat3306/gnet/v2 v2.3.7

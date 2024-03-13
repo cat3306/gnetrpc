@@ -4,6 +4,7 @@ import (
 	"github.com/cat3306/gnetrpc"
 	"github.com/cat3306/gnetrpc/protocol"
 	"github.com/cat3306/gnetrpc/rpclog"
+	"github.com/cat3306/gnetrpc/util"
 	"github.com/panjf2000/gnet/v2"
 )
 
@@ -18,7 +19,7 @@ func (c *ClosePlugin) Init(args ...interface{}) gnetrpc.Plugin {
 }
 func (c *ClosePlugin) OnDo(args ...interface{}) interface{} {
 	conn := args[0].(gnet.Conn)
-	rpclog.Warnf("client close id:%s,cause:%v", conn.Id(), args[1])
+	rpclog.Warnf("client close id:%s,cause:%v", util.GetConnId(conn), args[1])
 	var (
 		ctxChan chan *protocol.Context
 		ok      bool

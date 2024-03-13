@@ -67,7 +67,7 @@ func (a *Account) Login(ctx *protocol.Context, req *LoginReq, rsp *ApiRsp, tag s
 		rpclog.Errorf("Login err:%s,req:%+v", err.Error(), req)
 		rsp.Err(err.Error())
 	} else {
-		ctx.Conn.SetProperty("user_id", data.UserId)
+		//ctx.Conn.SetProperty("user_id", data.UserId)
 		rsp.Ok(data)
 	}
 	return gnetrpc.CallSelf()
@@ -110,22 +110,23 @@ func (a *Account) login(req *LoginReq, ctx *protocol.Context) (*LoginRsp, error)
 	if err != nil {
 		return nil, err
 	}
-	ctx.Conn.SetProperty(UserInfoKey, &userProfile)
+	//ctx.Conn.SetProperty(UserInfoKey, &userProfile)
 	return rsp, nil
 }
 func (a *Account) Logout(ctx *protocol.Context, req *struct{}, rsp *ApiRsp, tag struct{}) *gnetrpc.CallMode {
 
-	uv, _ := ctx.Conn.GetProperty("user_id")
-	if uv == nil {
-		return gnetrpc.CallNone()
-	}
-	userId := uv.(string)
+	// uv, _ := ctx.Conn.GetProperty("user_id")
+	// if uv == nil {
+	// 	return gnetrpc.CallNone()
+	// }
+	//userId := uv.(string)
+	userId := ""
 	err := a.logout(userId)
 	if err != nil {
 		rpclog.Errorf("Logout err:%s,req:%+v", err.Error(), req)
 		rsp.Err(err.Error())
 	} else {
-		ctx.Conn.DelProperty("user_id")
+		//ctx.Conn.DelProperty("user_id")
 		rsp.Ok(nil)
 	}
 	return gnetrpc.CallSelf()
