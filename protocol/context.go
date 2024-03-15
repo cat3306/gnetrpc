@@ -4,7 +4,6 @@ import (
 	"context"
 	"sync"
 
-	"github.com/cat3306/gnetrpc/common"
 	"github.com/panjf2000/ants/v2"
 	"github.com/panjf2000/gnet/v2"
 	"github.com/valyala/bytebufferpool"
@@ -24,10 +23,10 @@ var (
 
 func GetCtx() *Context {
 	ctx := CtxPool.Get().(*Context)
-	ctx.Reset()
 	return ctx
 }
 func PutCtx(ctx *Context) {
+	ctx.Reset()
 	CtxPool.Put(ctx)
 }
 
@@ -39,10 +38,9 @@ type Context struct {
 	ServiceMethod string
 	Metadata      map[string]string
 	//SerializeType uint8
-	MsgSeq     uint64 //reserved field
-	Ctx        context.Context
-	GPool      *ants.Pool
-	ConnMatrix *common.ConnMatrix
+	MsgSeq uint64 //reserved field
+	Ctx    context.Context
+	GPool  *ants.Pool
 }
 
 func (c *Context) Reset() {

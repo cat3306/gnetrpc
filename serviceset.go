@@ -13,14 +13,16 @@ import (
 )
 
 type ServiceSet struct {
-	set   map[string]*Service
-	gPool *ants.Pool
+	set        map[string]*Service
+	connMatrix *ConnMatrix
+	gPool      *ants.Pool
 }
 
-func NewServiceSet(pool *ants.Pool) *ServiceSet {
+func NewServiceSet(pool *ants.Pool, connMatrix *ConnMatrix) *ServiceSet {
 	return &ServiceSet{
-		set:   map[string]*Service{},
-		gPool: pool,
+		set:        map[string]*Service{},
+		gPool:      pool,
+		connMatrix: connMatrix,
 	}
 }
 func (s *ServiceSet) GetService(sp string) (bool, *Service) {
@@ -203,17 +205,17 @@ func (s *ServiceSet) Call(ctx *protocol.Context, tmpService *Service, mType *met
 			return nil
 		case Self:
 			buffer := protocol.Encode(ctx, replyv)
-			ctx.ConnMatrix.SendToConn(buffer, ctx.Conn)
+			s.connMatrix.SendToConn(buffer, ctx.Conn)
 			return nil
 		case Broadcast:
 			buffer := protocol.Encode(ctx, replyv)
-			ctx.ConnMatrix.Broadcast(buffer)
+			s.connMatrix.Broadcast(buffer)
 		case BroadcastExceptSelf:
 			buffer := protocol.Encode(ctx, replyv)
-			ctx.ConnMatrix.BroadcastExceptOne(buffer, util.GetConnId(ctx.Conn))
+			s.connMatrix.BroadcastExceptOne(buffer, util.GetConnId(ctx.Conn))
 		case BroadcastSomeone:
 			buffer := protocol.Encode(ctx, replyv)
-			ctx.ConnMatrix.BroadcastSomeone(buffer, callModel.Ids)
+			s.connMatrix.BroadcastSomeone(buffer, callModel.Ids)
 		}
 
 		//rpclog.Infof("args %s", string(data))

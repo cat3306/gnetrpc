@@ -4,7 +4,6 @@ import (
 	"errors"
 
 	"github.com/cat3306/gnetrpc"
-	"github.com/cat3306/gnetrpc/common"
 	"github.com/cat3306/gnetrpc/example/gameserver/util"
 	"github.com/cat3306/gnetrpc/protocol"
 	rpcutil "github.com/cat3306/gnetrpc/util"
@@ -63,7 +62,7 @@ func (r *RoomMgr) Create(ctx *protocol.Context, req *CreateRoomReq, rsp *ApiRsp)
 		gameState:  false,
 		scene:      0,
 		id:         id,
-		connMatrix: common.NewConnMatrix(false),
+		connMatrix: gnetrpc.NewConnMatrix(false),
 	}
 	room.connMatrix.Add(ctx.Conn)
 	r.AddRoom(room)

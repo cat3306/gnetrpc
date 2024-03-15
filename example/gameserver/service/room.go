@@ -1,7 +1,7 @@
 package service
 
 import (
-	"github.com/cat3306/gnetrpc/common"
+	"github.com/cat3306/gnetrpc"
 )
 
 type Room struct {
@@ -11,5 +11,5 @@ type Room struct {
 	gameState  bool   //游戏状态
 	scene      int    //游戏场景
 	id         string
-	connMatrix *common.ConnMatrix
+	connMatrix *gnetrpc.ConnMatrix
 }
