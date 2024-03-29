@@ -7,7 +7,6 @@ import (
 	"github.com/cat3306/gnetrpc/example/gameserver/conf"
 	"github.com/cat3306/gnetrpc/example/gameserver/service"
 	"github.com/cat3306/gnetrpc/example/gameserver/thirdmodule"
-	"github.com/cat3306/gnetrpc/plugin"
 	"github.com/cat3306/gnetrpc/rpclog"
 )
 
@@ -37,8 +36,8 @@ func main() {
 	// 	return nil
 	// })
 	s.AddPlugin(
-		new(plugin.ConnectPlugin),
-		new(service.ClosePlugin),
+		new(service.ConnOpenPlugin),
+		new(service.ConnClosePlugin),
 		new(service.ShutdownPlugin),
 	)
 	s.Register(
@@ -46,7 +45,7 @@ func main() {
 		new(service.RoomMgr).Init(),
 		new(service.GameMgr).Init(),
 	)
-	err = s.Run(gnetrpc.TcpNetwork, "0.0.0.0:7898")
+	err = s.Run(gnetrpc.UdpNetwork, "0.0.0.0:7898")
 	if err != nil {
 		rpclog.Infof("run err:%s", err.Error())
 	}

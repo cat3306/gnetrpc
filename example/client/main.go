@@ -74,7 +74,7 @@ func multiClient(num int) {
 	select {}
 }
 func singleClient() {
-	client, err := gnetrpc.NewClient("127.0.0.1:7898", "tcp").
+	client, err := gnetrpc.NewClient("127.0.0.1:7898", "udp").
 		Register(
 			new(Builtin),
 			new(Account),
@@ -87,7 +87,7 @@ func singleClient() {
 	GlobalChat(client)
 }
 func main() {
-	multiClient(500)
+	multiClient(1)
 	//singleClient()
 }
 
@@ -165,7 +165,7 @@ func HeartBeat(client *gnetrpc.Client) {
 
 func GlobalChat(client *gnetrpc.Client) {
 
-	for i := 0; i < 100; i++ {
+	for i := 0; i < 1; i++ {
 		err := client.Call("GameMgr", "GlobalChat", map[string]string{
 			share.AuthKey: "鸳鸯擦，鸳鸯体，你爱我，我爱你",
 		}, protocol.String, "💓:"+strconv.Itoa(i))

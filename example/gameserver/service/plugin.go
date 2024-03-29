@@ -2,6 +2,7 @@ package service
 
 import (
 	"errors"
+	"sync"
 
 	"github.com/cat3306/gnetrpc"
 	"github.com/cat3306/gnetrpc/protocol"
@@ -10,16 +11,16 @@ import (
 	"github.com/panjf2000/gnet/v2"
 )
 
-type ClosePlugin struct {
+type ConnClosePlugin struct {
 }
 
-func (c *ClosePlugin) Type() gnetrpc.PluginType {
+func (c *ConnClosePlugin) Type() gnetrpc.PluginType {
 	return gnetrpc.PluginTypeOnClose
 }
-func (c *ClosePlugin) Init(args ...interface{}) gnetrpc.Plugin {
+func (c *ConnClosePlugin) Init(args ...interface{}) gnetrpc.Plugin {
 	return c
 }
-func (c *ClosePlugin) OnDo(args ...interface{}) error {
+func (c *ConnClosePlugin) OnDo(args ...interface{}) error {
 	conn := args[0].(gnet.Conn)
 	rpclog.Warnf("client close id:%s,cause:%v", util.GetConnId(conn), args[1])
 	var (
@@ -39,7 +40,7 @@ func (c *ClosePlugin) OnDo(args ...interface{}) error {
 	c.doConnClose(ctxChan, conn)
 	return nil
 }
-func (c *ClosePlugin) doConnClose(ctxChan chan *protocol.Context, conn gnet.Conn) {
+func (c *ConnClosePlugin) doConnClose(ctxChan chan *protocol.Context, conn gnet.Conn) {
 	ctx := protocol.GetCtx()
 	ctx.H.SerializeType = byte(protocol.Json)
 	ctx.H.Version = protocol.Version
@@ -49,4 +50,22 @@ func (c *ClosePlugin) doConnClose(ctxChan chan *protocol.Context, conn gnet.Conn
 	ctx.ServiceMethod = "ConnOnClose"
 	ctx.Conn = conn
 	ctxChan <- ctx
+}
+
+type ConnOpenPlugin struct {
+}
+
+func (c *ConnOpenPlugin) Type() gnetrpc.PluginType {
+	return gnetrpc.PluginTypeOnOpen
+}
+func (c *ConnOpenPlugin) Init(args ...interface{}) gnetrpc.Plugin {
+	return c
+}
+func (c *ConnOpenPlugin) OnDo(args ...interface{}) error {
+	if len(args) == 0 {
+		return nil
+	}
+	conn := args[0].(gnet.Conn)
+	conn.SetContext(&sync.Map{}) //
+	return nil
 }

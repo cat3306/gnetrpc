@@ -2,6 +2,7 @@ package service
 
 import (
 	"github.com/cat3306/gnetrpc"
+	"github.com/cat3306/gnetrpc/example/gameserver/util"
 	"github.com/cat3306/gnetrpc/protocol"
 	"github.com/cat3306/gnetrpc/rpclog"
 )
@@ -24,5 +25,7 @@ func (r *GameMgr) ConnOnClose(ctx *protocol.Context) {
 }
 func (r *GameMgr) GlobalChat(ctx *protocol.Context, req *string, rsp *string) *gnetrpc.CallMode {
 	*rsp = *req
+	m := util.GetSyncMapFromConn(ctx.Conn)
+	m.Store("haha", "gaigai")
 	return gnetrpc.CallBroadcast()
 }
